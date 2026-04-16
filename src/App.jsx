@@ -157,7 +157,7 @@ export default function App() {
                     {r.steps.map((step, j) => (
                       <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
                         <span style={{ background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.3)", borderRadius: "50%", color: "#fb923c", fontSize: 11, fontWeight: 700, minWidth: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{j + 1}</span>
-                        <span style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.5 }}>{step}</span>
+                        <span style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.5, textAlign: "left", display: "block" }}>{step}</span>
                       </div>
                     ))}
                   </div>
