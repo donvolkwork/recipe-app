@@ -91,12 +91,12 @@ export default function App() {
       const res = await fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: [...selected].join(", ") }),
+        body: JSON.stringify({ ingredients: [...selected] }),
       });
       const text = await res.text();
       const clean = text.replace(/```json|```/g, "").trim();
       const data = JSON.parse(clean);
-      setRecipes(data);
+      setRecipes(data.recipes);
     } catch (e) {
       setError("Ошибка: " + e.message);
     }
