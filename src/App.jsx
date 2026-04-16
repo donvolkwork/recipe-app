@@ -138,7 +138,7 @@ export default function App() {
                 <div onClick={() => setOpenIdx(openIdx === i ? null : i)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", cursor: "pointer" }}>
                   <span style={{ fontSize: 28 }}>{r.emoji}</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 4 }}>{lang === "ru" ? r.nameRu : r.name}</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 4 }}>{r.name}</div>
                     <div style={{ fontSize: 12 }}>
                       <span style={{ color: "#94a3b8" }}>⏱ {r.time} {t.min}</span>
                       <span style={{ color: dc[r.difficulty] || "#fb923c", marginLeft: 10 }}>● {t.diff[r.difficulty] || r.difficulty}</span>
