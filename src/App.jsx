@@ -1,211 +1,587 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 const WORKER_URL = "https://recipe-backend-production-416c.up.railway.app/api/recipes";
 
 const DATA = {
   ru: {
     title: "Что приготовить?",
-    subtitle: "Выбери продукты — найдём рецепт",
-    cats: { meat: "🥩 Мясо", fish: "🐟 Рыба", veggies: "🥦 Овощи", dairy: "🧀 Молочное", grains: "🌾 Крупы", other: "🧂 Прочее" },
-    items: {
-      meat: ["Курица", "Говядина", "Свинина", "Фарш", "Бекон"],
-      fish: ["Лосось", "Треска", "Тунец", "Креветки", "Сельдь"],
-      veggies: ["Картошка", "Лук", "Чеснок", "Морковь", "Помидор", "Перец", "Баклажан", "Кабачок"],
-      dairy: ["Яйца", "Молоко", "Сыр", "Сметана", "Масло", "Творог"],
-      grains: ["Рис", "Гречка", "Паста", "Овсянка", "Перловка"],
-      other: ["Оливковое масло", "Соевый соус", "Томатная паста", "Грибы", "Фасоль"],
+    subtitle: "Выбери блюдо или продукты — найдём рецепт",
+    dishPlaceholder: "Введите блюдо...",
+    cats: {
+      meat:    { label: "Мясо",     icon: "🥩" },
+      fish:    { label: "Рыба",     icon: "🐟" },
+      veggies: { label: "Овощи",    icon: "🥦" },
+      dairy:   { label: "Молочное", icon: "🧀" },
+      grains:  { label: "Крупы",    icon: "🌾" },
+      other:   { label: "Прочее",   icon: "🧂" },
     },
-    placeholder: "Добавить продукт...",
-    btn: "🍳 Что приготовить?",
+    items: {
+      meat:    ["Курица","Говядина","Свинина","Фарш","Бекон","Индейка","Утка","Кролик"],
+      fish:    ["Лосось","Треска","Тунец","Креветки","Сельдь","Минтай","Форель","Кальмар"],
+      veggies: ["Картошка","Лук","Чеснок","Морковь","Помидор","Перец","Баклажан","Кабачок","Капуста","Шпинат","Брокколи","Огурец"],
+      dairy:   ["Яйца","Молоко","Сыр","Сметана","Масло","Творог","Кефир","Сливки"],
+      grains:  ["Рис","Гречка","Паста","Овсянка","Перловка","Булгур","Чечевица","Нут"],
+      other:   ["Оливковое масло","Соевый соус","Томатная паста","Грибы","Фасоль","Лимон","Мёд","Горчица"],
+    },
+    addProductPlaceholder: "Добавить продукт...",
+    btn: "🔍 Что приготовить?",
     loading: "Придумываю рецепты...",
-    selected: "Выбрано",
-    clear: "Очистить",
-    empty: "Выбери хотя бы один продукт",
+    loadingMore: "Ищу ещё...",
+    clearAll: "очистить всё",
+    clearField: "очистить",
+    selected: "выбрано",
     results: "Варианты блюд",
     back: "← Назад",
-    min: "мин",
-    diff: { easy: "Просто", medium: "Средне", hard: "Сложно" },
+    showMore: "🔍 Показать ещё",
+    min: "мин", kcal: "ккал",
+    diff: { easy:"Легко", medium:"Средне", hard:"Сложно" },
     howto: "Как готовить",
+    share: "Поделиться",
+    shopList: "📋 Список покупок",
+    orProducts: "или выберите продукты",
+    calories: "Калории на блюдо",
+    cookTime: "Время готовки",
+    difficulty: "Сложность",
+    diet: "Диета",
+    dietItems: ["🥗 Вегетарианское","🌾 Без глютена","☦️ Пост","🥑 Кето","🥣 Для ЖКТ"],
+    timeChips: ["До 20 мин","До 40 мин","До 60 мин","Любое"],
+    diffChips: ["Легко","Средне","Сложно","Любая"],
+    calAny: "Любые",
+    noResults: "Рецепт не найден",
+    noResultsDesc: "С такой комбинацией фильтров рецептов нет. Попробуй расширить диапазон калорий, изменить сложность или убрать диетические ограничения.",
+    changeParams: "← Изменить параметры",
+    errorTitle: "Что-то пошло не так",
+    errorDesc: "Не удалось получить рецепты. Попробуй ещё раз через несколько секунд.",
+    retry: "Попробовать снова",
+    copiedMsg: "Скопировано!",
+    filterLabel: "Фильтры",
+    catLabel: "Категория",
+    prodLabel: "Продукты",
+    selectedLabel: "Выбрано",
   },
   en: {
     title: "What to cook?",
-    subtitle: "Pick ingredients — find a recipe",
-    cats: { meat: "🥩 Meat", fish: "🐟 Fish", veggies: "🥦 Veggies", dairy: "🧀 Dairy", grains: "🌾 Grains", other: "🧂 Other" },
-    items: {
-      meat: ["Chicken", "Beef", "Pork", "Ground meat", "Bacon"],
-      fish: ["Salmon", "Cod", "Tuna", "Shrimp", "Herring"],
-      veggies: ["Potato", "Onion", "Garlic", "Carrot", "Tomato", "Pepper", "Eggplant", "Zucchini"],
-      dairy: ["Eggs", "Milk", "Cheese", "Sour cream", "Butter", "Cottage cheese"],
-      grains: ["Rice", "Buckwheat", "Pasta", "Oatmeal", "Barley"],
-      other: ["Olive oil", "Soy sauce", "Tomato paste", "Mushrooms", "Beans"],
+    subtitle: "Enter a dish or pick ingredients — we'll find a recipe",
+    dishPlaceholder: "Enter a dish...",
+    cats: {
+      meat:    { label: "Meat",    icon: "🥩" },
+      fish:    { label: "Fish",    icon: "🐟" },
+      veggies: { label: "Veggies", icon: "🥦" },
+      dairy:   { label: "Dairy",   icon: "🧀" },
+      grains:  { label: "Grains",  icon: "🌾" },
+      other:   { label: "Other",   icon: "🧂" },
     },
-    placeholder: "Add ingredient...",
-    btn: "🍳 What can I cook?",
+    items: {
+      meat:    ["Chicken","Beef","Pork","Ground meat","Bacon","Turkey","Duck","Rabbit"],
+      fish:    ["Salmon","Cod","Tuna","Shrimp","Herring","Pollock","Trout","Squid"],
+      veggies: ["Potato","Onion","Garlic","Carrot","Tomato","Pepper","Eggplant","Zucchini","Cabbage","Spinach","Broccoli","Cucumber"],
+      dairy:   ["Eggs","Milk","Cheese","Sour cream","Butter","Cottage cheese","Kefir","Cream"],
+      grains:  ["Rice","Buckwheat","Pasta","Oatmeal","Barley","Bulgur","Lentils","Chickpeas"],
+      other:   ["Olive oil","Soy sauce","Tomato paste","Mushrooms","Beans","Lemon","Honey","Mustard"],
+    },
+    addProductPlaceholder: "Add ingredient...",
+    btn: "🔍 What can I cook?",
     loading: "Finding recipes...",
-    selected: "Selected",
-    clear: "Clear",
-    empty: "Pick at least one ingredient",
+    loadingMore: "Finding more...",
+    clearAll: "clear all",
+    clearField: "clear",
+    selected: "selected",
     results: "Recipe ideas",
     back: "← Back",
-    min: "min",
-    diff: { easy: "Easy", medium: "Medium", hard: "Hard" },
+    showMore: "🔍 Show more",
+    min: "min", kcal: "kcal",
+    diff: { easy:"Easy", medium:"Medium", hard:"Hard" },
     howto: "How to cook",
+    share: "Share",
+    shopList: "📋 Shopping list",
+    orProducts: "or pick ingredients",
+    calories: "Calories per dish",
+    cookTime: "Cooking time",
+    difficulty: "Difficulty",
+    diet: "Diet",
+    dietItems: ["🥗 Vegetarian","🌾 Gluten-free","☦️ Fasting","🥑 Keto","🥣 Digestive"],
+    timeChips: ["Under 20 min","Under 40 min","Under 60 min","Any"],
+    diffChips: ["Easy","Medium","Hard","Any"],
+    calAny: "Any",
+    noResults: "No recipes found",
+    noResultsDesc: "No recipes match your filters. Try widening the calorie range, changing difficulty, or removing diet restrictions.",
+    changeParams: "← Change parameters",
+    errorTitle: "Something went wrong",
+    errorDesc: "Couldn't get recipes. Please try again in a few seconds.",
+    retry: "Try again",
+    copiedMsg: "Copied!",
+    filterLabel: "Filters",
+    catLabel: "Category",
+    prodLabel: "Products",
+    selectedLabel: "Selected",
   },
 };
 
+// ── SVG ──────────────────────────────────────────────────────────────────────
+
+function CheckIcon({ confirmed }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+      stroke={confirmed ? "#fb923c" : "#9ca3af"}
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="2,7 5.5,10.5 12,3.5" />
+    </svg>
+  );
+}
+
+function ShareSVG() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+      stroke="#64748b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="10" cy="2" r="1.3"/><circle cx="10" cy="10" r="1.3"/><circle cx="2" cy="6" r="1.3"/>
+      <line x1="3.2" y1="5.4" x2="8.8" y2="2.6"/><line x1="3.2" y1="6.6" x2="8.8" y2="9.4"/>
+    </svg>
+  );
+}
+
+// ── SmartField ───────────────────────────────────────────────────────────────
+
+function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClear, showClearWhenTyping }) {
+  const hasText = value.trim().length > 0;
+  const showCheck = hasText || confirmed;
+  // Show clear button: when confirmed OR when typing but not confirmed (if showClearWhenTyping)
+  const showClear = confirmed || (showClearWhenTyping && hasText && !confirmed);
+
+  return (
+    <div style={{
+      width: "100%",
+      background: confirmed ? "rgba(234,88,12,0.08)" : "rgba(255,255,255,0.06)",
+      border: confirmed ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.1)",
+      borderRadius: 10,
+      padding: "9px 12px",
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 10,
+      boxSizing: "border-box",
+      transition: "border-color 0.2s, background 0.2s",
+    }}>
+      {confirmed && (
+        <span style={{ color: "#fb923c", fontSize: 13, flexShrink: 0, lineHeight: 1 }}>✓</span>
+      )}
+      <input
+        style={{
+          flex: 1, background: "none", border: "none", outline: "none",
+          fontSize: 13,
+          color: (hasText || confirmed) ? "#f1f5f9" : "#64748b",
+          fontWeight: confirmed ? 500 : 400,
+        }}
+        placeholder={placeholder}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={e => { if (e.key === "Enter" && hasText && !confirmed) onConfirm(); }}
+      />
+      {/* Clear button — when confirmed OR when typing (dish field) */}
+      {showClear && onClear && (
+        <button onClick={onClear} style={{
+          background: "none", border: "none", color: "#64748b",
+          fontSize: 11, cursor: "pointer", flexShrink: 0, padding: "0 4px",
+        }}>очистить</button>
+      )}
+      {/* Checkmark */}
+      {showCheck && (
+        <button
+          onClick={() => { if (hasText && !confirmed) onConfirm(); }}
+          style={{
+            background: confirmed ? "rgba(234,88,12,0.2)" : "rgba(255,255,255,0.08)",
+            border: confirmed ? "1px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.15)",
+            borderRadius: 7, width: 30, height: 30,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, cursor: confirmed ? "default" : "pointer",
+          }}>
+          <CheckIcon confirmed={confirmed} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── App ──────────────────────────────────────────────────────────────────────
+
 export default function App() {
   const [lang, setLang] = useState("ru");
-  const [cat, setCat] = useState("veggies");
-  const [selected, setSelected] = useState(new Set());
-  const [custom, setCustom] = useState("");
-  const [customList, setCustomList] = useState([]);
-  const [recipes, setRecipes] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [openIdx, setOpenIdx] = useState(null);
-
   const t = DATA[lang];
 
-  const toggle = (item) => {
-    setSelected(prev => {
-      const n = new Set(prev);
-      n.has(item) ? n.delete(item) : n.add(item);
-      return n;
-    });
-  };
+  // Dish
+  const [dish, setDish] = useState("");
+  const [dishConfirmed, setDishConfirmed] = useState(false);
 
-  const addCustom = () => {
-    const v = custom.trim();
-    if (v && !customList.includes(v)) {
-      setCustomList(p => [...p, v]);
-      setSelected(p => new Set([...p, v]));
+  // Products
+  const [activeCat, setActiveCat] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [productInput, setProductInput] = useState("");
+  const [productConfirmed, setProductConfirmed] = useState(false);
+
+  // Filters
+  const [calMin, setCalMin] = useState(100);
+  const [calMax, setCalMax] = useState(500);
+  const [calAny, setCalAny] = useState(false);
+  const [timeChip, setTimeChip] = useState("До 40 мин");
+  const [diffChip, setDiffChip] = useState("Любая");
+  const [activeDiets, setActiveDiets] = useState(new Set());
+
+  // Results
+  const [recipes, setRecipes] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState(false);
+  const [noResults, setNoResults] = useState(false);
+  const [openIdx, setOpenIdx] = useState(null);
+  const [copiedIdx, setCopiedIdx] = useState(null);
+
+  const trackRef = useRef(null);
+
+  // ── Dish ──
+  const confirmDish = () => { if (dish.trim()) setDishConfirmed(true); };
+  const clearDish = () => { setDish(""); setDishConfirmed(false); };
+  const handleDishChange = v => { setDish(v); setDishConfirmed(false); };
+
+  // ── Product field ──
+  const confirmProduct = () => {
+    const v = productInput.trim();
+    if (v) {
+      setSelected(prev => new Set([...prev, v]));
+      setProductInput("");
+      setProductConfirmed(false);
     }
-    setCustom("");
+  };
+  const clearProduct = () => { setProductInput(""); setProductConfirmed(false); };
+  const handleProductChange = v => { setProductInput(v); setProductConfirmed(false); };
+
+  // ── Remove single product ──
+  const removeProduct = item => {
+    setSelected(prev => { const n = new Set(prev); n.delete(item); return n; });
   };
 
+  // ── Category ──
+  const handleCatClick = key => setActiveCat(key);
+
+  // ── Toggle product chip ──
+  const toggle = item => setSelected(prev => {
+    const n = new Set(prev); n.has(item) ? n.delete(item) : n.add(item); return n;
+  });
+
+  // ── Diet ──
+  const toggleDiet = d => setActiveDiets(prev => {
+    const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n;
+  });
+
+  // ── Slider ──
+  const handleTrackClick = e => {
+    if (!trackRef.current || calAny) return;
+    const rect = trackRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const val = Math.round(100 + (pct / 100) * 900);
+    const midPct = (((calMin - 100) / 900) + ((calMax - 100) / 900)) / 2 * 100;
+    if (pct < midPct) setCalMin(Math.min(val, calMax - 50));
+    else setCalMax(Math.max(val, calMin + 50));
+  };
+
+  // ── Generate ──
   const generate = useCallback(async () => {
-    if (selected.size === 0) { setError(t.empty); return; }
-    setError("");
-    setLoading(true);
+    const hasDish = dishConfirmed && dish.trim();
+    const hasIngredients = selected.size > 0;
+    if (!hasDish && !hasIngredients) return;
+    setApiError(false); setNoResults(false); setLoading(true); setRecipes(null); setOpenIdx(null);
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: [...selected] }),
+        body: JSON.stringify({
+          ingredients: [...selected],
+          dish: hasDish ? dish.trim() : "",
+          exclude: [],
+          filters: { calMin: calAny ? 0 : calMin, calMax: calAny ? 99999 : calMax, time: timeChip, difficulty: diffChip, diets: [...activeDiets], lang },
+        }),
+        signal: AbortSignal.timeout(30000),
       });
       const text = await res.text();
-      const clean = text.replace(/```json|```/g, "").trim();
-      const data = JSON.parse(clean);
-      setRecipes(data.recipes);
-    } catch (e) {
-      setError("Ошибка: " + e.message);
-    }
+      const data = JSON.parse(text.replace(/```json|```/g, "").trim());
+      if (!data.recipes || data.recipes.length === 0) setNoResults(true);
+      else { setRecipes(data.recipes); setOpenIdx(0); }
+    } catch { setApiError(true); }
     setLoading(false);
-  }, [selected, t]);
+  }, [dish, dishConfirmed, selected, calMin, calMax, calAny, timeChip, diffChip, activeDiets, lang]);
 
-  const dc = { easy: "#4ade80", medium: "#fb923c", hard: "#f87171" };
+  // ── Show more ──
+  const showMore = useCallback(async () => {
+    const hasDish = dishConfirmed && dish.trim();
+    const hasIngredients = selected.size > 0;
+    if (!hasDish && !hasIngredients) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ingredients: [...selected],
+          dish: hasDish ? dish.trim() : "",
+          exclude: recipes ? recipes.map(r => r.name) : [],
+          filters: { calMin: calAny ? 0 : calMin, calMax: calAny ? 99999 : calMax, time: timeChip, difficulty: diffChip, diets: [...activeDiets], lang },
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      const text = await res.text();
+      const data = JSON.parse(text.replace(/```json|```/g, "").trim());
+      if (data.recipes && data.recipes.length > 0) setRecipes(prev => [...(prev || []), ...data.recipes]);
+    } catch { /* silent */ }
+    setLoadingMore(false);
+  }, [dish, dishConfirmed, selected, recipes, calMin, calMax, calAny, timeChip, diffChip, activeDiets, lang]);
 
-  const chip = (item, dashed) => ({
-    background: selected.has(item) ? "rgba(234,88,12,0.2)" : "rgba(255,255,255,0.05)",
-    border: selected.has(item) ? "1px solid rgba(234,88,12,0.5)" : dashed ? "1px dashed rgba(255,255,255,0.2)" : "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 20,
-    color: selected.has(item) ? "#fed7aa" : "#cbd5e1",
-    fontSize: 13,
-    padding: "7px 14px",
-    cursor: "pointer",
-  });
+  // ── Share / Shop ──
+  const handleShare = async r => {
+    const text = `${r.emoji} ${r.name}\n⏱ ${r.time} ${t.min}\n\n${r.ingredients.join(", ")}`;
+    if (navigator.share) await navigator.share({ title: r.name, text });
+    else navigator.clipboard.writeText(text);
+  };
+  const handleShopList = (r, idx) => {
+    navigator.clipboard.writeText(`🛒 ${r.name}\n\n${r.ingredients.join("\n")}`);
+    setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  const reset = () => { setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); };
+  const canGenerate = (dishConfirmed && dish.trim()) || selected.size > 0;
+
+  // ── Styles ──
+  const sLabel = { fontSize: 9, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 };
+  const sDiv = { height: 1, background: "rgba(255,255,255,0.05)", margin: "10px 0" };
+  const sFilterBlock = { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "9px 11px" };
+  const sChip = active => ({ background: active ? "rgba(234,88,12,0.12)" : "rgba(255,255,255,0.04)", border: active ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 6, color: active ? "#fb923c" : "#64748b", fontSize: 10, padding: "3px 8px", cursor: "pointer" });
+  const sPill = active => ({ background: active ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.04)", border: active ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 20, color: active ? "#6ee7b7" : "#64748b", fontSize: 10, padding: "4px 10px", cursor: "pointer" });
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0d0f14", display: "flex", justifyContent: "center", padding: "20px 16px 48px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      <div style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, padding: 22 }}>
+    <div style={{ minHeight: "100vh", background: "#0d0f14", display: "flex", justifyContent: "center", padding: "20px 16px 48px", fontFamily: "system-ui,-apple-system,sans-serif" }}>
+      <div style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, padding: 20 }}>
 
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>{t.title}</div>
-            <div style={{ fontSize: 13, color: "#64748b" }}>{t.subtitle}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", lineHeight: 1.2, marginBottom: 3 }}>{t.title}</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>{t.subtitle}</div>
           </div>
-          <button onClick={() => setLang(l => l === "ru" ? "en" : "ru")} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#94a3b8", fontSize: 12, fontWeight: 700, padding: "5px 10px", cursor: "pointer", flexShrink: 0, marginTop: 4 }}>
-            {lang === "ru" ? "EN" : "RU"}
-          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => { if (navigator.share) navigator.share({ title: t.title, url: window.location.href }); }}
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#64748b", padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center" }}>
+              <ShareSVG />
+            </button>
+            <button onClick={() => setLang(l => l === "ru" ? "en" : "ru")}
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#64748b", fontSize: 11, fontWeight: 700, padding: "5px 10px", cursor: "pointer" }}>
+              {lang === "ru" ? "EN" : "RU"}
+            </button>
+          </div>
         </div>
 
-        {recipes ? (
+        {/* Results */}
+        {(recipes || noResults || apiError) ? (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 14 }}>{t.results}</div>
-            {recipes.map((r, i) => (
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>{t.results}</div>
+
+            {noResults && (
+              <div style={{ textAlign: "center", padding: "28px 12px" }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: "#f1f5f9", marginBottom: 8 }}>{t.noResults}</div>
+                <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.6, marginBottom: 16 }}>{t.noResultsDesc}</div>
+                <button onClick={reset} style={{ background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)", borderRadius: 50, color: "#fb923c", fontSize: 12, fontWeight: 600, padding: "10px 20px", cursor: "pointer" }}>{t.changeParams}</button>
+              </div>
+            )}
+
+            {apiError && (
+              <div style={{ textAlign: "center", padding: "28px 12px" }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: "#f1f5f9", marginBottom: 8 }}>{t.errorTitle}</div>
+                <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.6, marginBottom: 16 }}>{t.errorDesc}</div>
+                <button onClick={generate} style={{ background: "#ea580c", border: "none", borderRadius: 50, color: "#fff", fontSize: 12, fontWeight: 600, padding: "10px 20px", cursor: "pointer" }}>{t.retry}</button>
+              </div>
+            )}
+
+            {recipes && recipes.map((r, i) => (
               <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, marginBottom: 10, overflow: "hidden" }}>
-                <div onClick={() => setOpenIdx(openIdx === i ? null : i)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", cursor: "pointer" }}>
-                  <span style={{ fontSize: 28 }}>{r.emoji}</span>
+                <div onClick={() => setOpenIdx(openIdx === i ? null : i)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", cursor: "pointer" }}>
+                  <span style={{ fontSize: 26 }}>{r.emoji}</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 4 }}>{r.name}</div>
-                    <div style={{ fontSize: 12 }}>
-                      <span style={{ color: "#94a3b8" }}>⏱ {r.time} {t.min}</span>
-                      <span style={{ color: dc[r.difficulty] || "#fb923c", marginLeft: 10 }}>● {t.diff[r.difficulty] || r.difficulty}</span>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9", marginBottom: 3 }}>{r.name}</div>
+                    <div style={{ fontSize: 11, color: "#64748b" }}>
+                      ⏱ {r.time} {t.min}
+                      <span style={{ color: "#4ade80", marginLeft: 8 }}>● {t.diff[r.difficulty] || r.difficulty}</span>
+                      {r.calories && <span style={{ color: "#fb923c", marginLeft: 8 }}>● {r.calories} {t.kcal}</span>}
                     </div>
                   </div>
-                  <span style={{ color: "#475569", fontSize: 10 }}>{openIdx === i ? "▲" : "▼"}</span>
+                  <span style={{ color: "#64748b", fontSize: 10 }}>{openIdx === i ? "▲" : "▼"}</span>
                 </div>
                 {openIdx === i && (
-                  <div style={{ padding: "14px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                  <div style={{ padding: "12px 14px 14px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 12 }}>
                       {r.ingredients.map((ing, j) => (
                         <span key={j} style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 6, color: "#6ee7b7", fontSize: 11, padding: "3px 8px" }}>{ing}</span>
                       ))}
                     </div>
-                    <div style={{ fontSize: 11, color: "#475569", marginBottom: 10, textTransform: "uppercase", letterSpacing: 1 }}>{t.howto}</div>
+                    <div style={{ fontSize: 9, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>{t.howto}</div>
                     {r.steps.map((step, j) => (
-                      <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
-                        <span style={{ background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.3)", borderRadius: "50%", color: "#fb923c", fontSize: 11, fontWeight: 700, minWidth: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{j + 1}</span>
-                        <span style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.5, textAlign: "left", display: "block" }}>{step}</span>
+                      <div key={j} style={{ display: "flex", gap: 9, alignItems: "flex-start", marginBottom: 7 }}>
+                        <span style={{ background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.3)", borderRadius: "50%", color: "#fb923c", fontSize: 10, fontWeight: 700, minWidth: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{j + 1}</span>
+                        <span style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.5, textAlign: "left" }}>{step}</span>
                       </div>
                     ))}
+                    <div style={{ display: "flex", gap: 7, marginTop: 12 }}>
+                      <button onClick={() => handleShare(r)} style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 9, color: "#64748b", fontSize: 11, padding: "8px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                        <ShareSVG /> {t.share}
+                      </button>
+                      <button onClick={() => handleShopList(r, i)} style={{ flex: 1, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: 9, color: "#6ee7b7", fontSize: 11, padding: "8px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                        {copiedIdx === i ? "✓ " + t.copiedMsg : t.shopList}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             ))}
-            <button onClick={() => { setRecipes(null); setOpenIdx(null); }} style={{ width: "100%", background: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#64748b", fontSize: 13, padding: "10px 16px", cursor: "pointer", marginTop: 6 }}>
+
+            {recipes && (
+              <button onClick={showMore} disabled={loadingMore}
+                style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)", borderRadius: 50, color: "#fb923c", fontSize: 13, fontWeight: 600, padding: "12px 16px", cursor: loadingMore ? "wait" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, opacity: loadingMore ? 0.7 : 1 }}>
+                {loadingMore ? t.loadingMore : t.showMore}
+              </button>
+            )}
+            <button onClick={reset} style={{ width: "100%", background: "none", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 50, color: "#64748b", fontSize: 12, padding: "10px 16px", cursor: "pointer", marginTop: 6 }}>
               {t.back}
             </button>
           </div>
+
         ) : (
           <>
+            {/* Dish field — showClearWhenTyping=true: очистить появляется при вводе */}
+            <SmartField
+              placeholder={t.dishPlaceholder}
+              value={dish}
+              onChange={handleDishChange}
+              onConfirm={confirmDish}
+              confirmed={dishConfirmed}
+              onClear={clearDish}
+              showClearWhenTyping={true}
+            />
+
+            {/* Or divider */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 10px" }}>
+              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.05)" }} />
+              <span style={{ fontSize: 10, color: "#64748b" }}>{t.orProducts}</span>
+              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.05)" }} />
+            </div>
+
+            {/* Selected products scroll row */}
             {selected.size > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.25)", borderRadius: 10, padding: "8px 12px", marginBottom: 14 }}>
-                <span style={{ fontSize: 13, color: "#fb923c", fontWeight: 500 }}>✓ {t.selected}: {selected.size}</span>
-                <button onClick={() => setSelected(new Set())} style={{ background: "none", border: "none", color: "#64748b", fontSize: 12, cursor: "pointer" }}>{t.clear}</button>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <span style={sLabel}>{t.selectedLabel}: {selected.size}</span>
+                  <button onClick={() => setSelected(new Set())} style={{ background: "none", border: "none", color: "#64748b", fontSize: 10, cursor: "pointer" }}>{t.clearAll}</button>
+                </div>
+                <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+                  {[...selected].map(item => (
+                    <div key={item} style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(234,88,12,0.13)", border: "1px solid rgba(234,88,12,0.4)", borderRadius: 20, color: "#fed7aa", fontSize: 11, padding: "4px 10px", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      ✓ {item}
+                      <button onClick={() => removeProduct(item)} style={{ background: "none", border: "none", color: "#fb923c", fontSize: 13, cursor: "pointer", lineHeight: 1, padding: 0, marginLeft: 2 }}>×</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-              {Object.entries(t.cats).map(([key, label]) => (
-                <button key={key} onClick={() => setCat(key)} style={{ background: cat === key ? "rgba(234,88,12,0.15)" : "rgba(255,255,255,0.05)", border: cat === key ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.06)", borderRadius: 20, color: cat === key ? "#fb923c" : "#64748b", fontSize: 12, padding: "6px 12px", cursor: "pointer" }}>
-                  {label}
-                </button>
+            {/* Categories */}
+            <span style={sLabel}>{t.catLabel}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+              {Object.entries(t.cats).map(([key, { label, icon }]) => (
+                <div key={key} onClick={() => handleCatClick(key)}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: activeCat === key ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)", border: activeCat === key ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "7px 8px", minWidth: 52, cursor: "pointer" }}>
+                  <span style={{ fontSize: 16 }}>{icon}</span>
+                  <span style={{ fontSize: 10, color: activeCat === key ? "#fb923c" : "#64748b" }}>{label}</span>
+                </div>
               ))}
             </div>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16, minHeight: 80 }}>
-              {t.items[cat].map(item => (
-                <button key={item} onClick={() => toggle(item)} style={chip(item, false)}>
-                  {selected.has(item) && "✓ "}{item}
-                </button>
-              ))}
-              {customList.map(item => (
-                <button key={item} onClick={() => toggle(item)} style={chip(item, true)}>
-                  {selected.has(item) && "✓ "}{item}
-                </button>
-              ))}
+            {/* Products */}
+            {activeCat && (
+              <>
+                <div style={sDiv} />
+                <span style={{ ...sLabel, marginBottom: 8 }}>{t.prodLabel}</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                  {t.items[activeCat].map(item => (
+                    <button key={item} onClick={() => toggle(item)}
+                      style={{ background: selected.has(item) ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)", border: selected.has(item) ? "1.5px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: selected.has(item) ? "#fed7aa" : "#64748b", fontSize: 12, padding: "5px 10px", cursor: "pointer" }}>
+                      {selected.has(item) ? "✓ " : ""}{item}
+                    </button>
+                  ))}
+                </div>
+                <SmartField
+                  placeholder={t.addProductPlaceholder}
+                  value={productInput}
+                  onChange={handleProductChange}
+                  onConfirm={confirmProduct}
+                  confirmed={productConfirmed}
+                  onClear={clearProduct}
+                  showClearWhenTyping={false}
+                />
+              </>
+            )}
+
+            <div style={sDiv} />
+
+            {/* Filters */}
+            <span style={sLabel}>{t.filterLabel}</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 10 }}>
+
+              {/* Calorie slider */}
+              <div style={sFilterBlock}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
+                  <span style={{ fontSize: 10, color: "#64748b", textAlign: "left" }}>{t.calories}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "#fb923c" }}>
+                    {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
+                  </span>
+                </div>
+                <div ref={trackRef} onClick={handleTrackClick}
+                  style={{ position: "relative", height: 3, background: "rgba(255,255,255,0.07)", borderRadius: 2, marginBottom: 8, cursor: calAny ? "default" : "pointer", opacity: calAny ? 0.3 : 1 }}>
+                  <div style={{ position: "absolute", height: 3, background: "rgba(234,88,12,0.5)", borderRadius: 2, left: `${((calMin - 100) / 900) * 100}%`, right: `${100 - ((calMax - 100) / 900) * 100}%` }} />
+                  <div style={{ position: "absolute", top: -7, left: `calc(${((calMin - 100) / 900) * 100}% - 8px)`, width: 16, height: 16, background: "#fb923c", borderRadius: "50%", boxShadow: "0 0 5px rgba(234,88,12,0.6)" }} />
+                  <div style={{ position: "absolute", top: -7, left: `calc(${((calMax - 100) / 900) * 100}% - 8px)`, width: 16, height: 16, background: "#fb923c", borderRadius: "50%", boxShadow: "0 0 5px rgba(234,88,12,0.6)" }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#64748b", marginBottom: 8 }}><span>100</span><span>1000</span></div>
+                <div style={{ display: "flex" }}>
+                  <button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button>
+                </div>
+              </div>
+
+              {/* Time — label left aligned */}
+              <div style={sFilterBlock}>
+                <div style={{ marginBottom: 7 }}>
+                  <span style={{ fontSize: 10, color: "#64748b", textAlign: "left", display: "block" }}>{t.cookTime}</span>
+                </div>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                  {t.timeChips.map(c => <button key={c} onClick={() => setTimeChip(c)} style={sChip(timeChip === c)}>{c}</button>)}
+                </div>
+              </div>
+
+              {/* Difficulty — label left aligned */}
+              <div style={sFilterBlock}>
+                <div style={{ marginBottom: 7 }}>
+                  <span style={{ fontSize: 10, color: "#64748b", textAlign: "left", display: "block" }}>{t.difficulty}</span>
+                </div>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                  {t.diffChips.map(c => <button key={c} onClick={() => setDiffChip(c)} style={sChip(diffChip === c)}>{c}</button>)}
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-              <input value={custom} onChange={e => setCustom(e.target.value)} onKeyDown={e => e.key === "Enter" && addCustom()} placeholder={t.placeholder} style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#e2e8f0", fontSize: 13, padding: "10px 14px", outline: "none" }} />
-              <button onClick={addCustom} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "#94a3b8", fontSize: 20, width: 42, height: 42, cursor: "pointer", flexShrink: 0 }}>+</button>
+            {/* Diet */}
+            <span style={sLabel}>{t.diet}</span>
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 16 }}>
+              {t.dietItems.map(d => <button key={d} onClick={() => toggleDiet(d)} style={sPill(activeDiets.has(d))}>{d}</button>)}
             </div>
 
-            {error && <div style={{ color: "#f87171", fontSize: 12, marginBottom: 10, padding: "8px 12px", background: "rgba(248,113,113,0.08)", borderRadius: 8 }}>{error}</div>}
-
-            <button onClick={generate} disabled={loading} style={{ width: "100%", background: loading ? "rgba(234,88,12,0.5)" : "linear-gradient(135deg, #ea580c, #f97316)", border: "none", borderRadius: 14, color: "#fff", fontSize: 15, fontWeight: 700, padding: "14px", cursor: loading ? "wait" : "pointer", boxShadow: "0 8px 32px rgba(234,88,12,0.3)" }}>
+            {/* CTA */}
+            <button onClick={generate} disabled={loading || !canGenerate}
+              style={{ width: "100%", background: (!canGenerate || loading) ? "rgba(234,88,12,0.4)" : "#ea580c", border: "none", borderRadius: 50, color: "#fff", fontSize: 14, fontWeight: 700, padding: "13px 16px", cursor: (!canGenerate || loading) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
               {loading ? t.loading : t.btn}
             </button>
           </>
