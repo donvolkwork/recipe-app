@@ -28,7 +28,6 @@ const DATA = {
     loading: "Придумываю рецепты...",
     loadingMore: "Ищу ещё...",
     clearAll: "очистить всё",
-    clearField: "очистить",
     selected: "выбрано",
     results: "Варианты блюд",
     back: "← Назад",
@@ -43,6 +42,7 @@ const DATA = {
     cookTime: "Время готовки",
     difficulty: "Сложность",
     diet: "Диета",
+    filters: "Фильтры",
     dietItems: ["🥗 Вегетарианское","🌾 Без глютена","☦️ Пост","🥑 Кето","🥣 Для ЖКТ"],
     timeChips: ["До 20 мин","До 40 мин","До 60 мин","Любое"],
     diffChips: ["Легко","Средне","Сложно","Любая"],
@@ -54,7 +54,6 @@ const DATA = {
     errorDesc: "Не удалось получить рецепты. Попробуй ещё раз через несколько секунд.",
     retry: "Попробовать снова",
     copiedMsg: "Скопировано!",
-    filterLabel: "Фильтры",
     catLabel: "Категория",
     prodLabel: "Продукты",
     selectedLabel: "Выбрано",
@@ -84,7 +83,6 @@ const DATA = {
     loading: "Finding recipes...",
     loadingMore: "Finding more...",
     clearAll: "clear all",
-    clearField: "clear",
     selected: "selected",
     results: "Recipe ideas",
     back: "← Back",
@@ -99,6 +97,7 @@ const DATA = {
     cookTime: "Cooking time",
     difficulty: "Difficulty",
     diet: "Diet",
+    filters: "Filters",
     dietItems: ["🥗 Vegetarian","🌾 Gluten-free","☦️ Fasting","🥑 Keto","🥣 Digestive"],
     timeChips: ["Under 20 min","Under 40 min","Under 60 min","Any"],
     diffChips: ["Easy","Medium","Hard","Any"],
@@ -110,7 +109,6 @@ const DATA = {
     errorDesc: "Couldn't get recipes. Please try again in a few seconds.",
     retry: "Try again",
     copiedMsg: "Copied!",
-    filterLabel: "Filters",
     catLabel: "Category",
     prodLabel: "Products",
     selectedLabel: "Selected",
@@ -121,7 +119,7 @@ const DATA = {
 
 function CheckIcon({ confirmed }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+    <svg width="16" height="16" viewBox="0 0 14 14" fill="none"
       stroke={confirmed ? "#fb923c" : "#9ca3af"}
       strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="2,7 5.5,10.5 12,3.5" />
@@ -131,7 +129,7 @@ function CheckIcon({ confirmed }) {
 
 function ShareSVG() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+    <svg width="14" height="14" viewBox="0 0 12 12" fill="none"
       stroke="#64748b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="10" cy="2" r="1.3"/><circle cx="10" cy="10" r="1.3"/><circle cx="2" cy="6" r="1.3"/>
       <line x1="3.2" y1="5.4" x2="8.8" y2="2.6"/><line x1="3.2" y1="6.6" x2="8.8" y2="9.4"/>
@@ -144,7 +142,6 @@ function ShareSVG() {
 function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClear, showClearWhenTyping }) {
   const hasText = value.trim().length > 0;
   const showCheck = hasText || confirmed;
-  // Show clear button: when confirmed OR when typing but not confirmed (if showClearWhenTyping)
   const showClear = confirmed || (showClearWhenTyping && hasText && !confirmed);
 
   return (
@@ -152,22 +149,21 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
       width: "100%",
       background: confirmed ? "rgba(234,88,12,0.08)" : "rgba(255,255,255,0.06)",
       border: confirmed ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.1)",
-      borderRadius: 10,
-      padding: "9px 12px",
+      borderRadius: 12,
+      padding: "12px 14px",
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      marginBottom: 10,
+      gap: 10,
+      marginBottom: 12,
       boxSizing: "border-box",
-      transition: "border-color 0.2s, background 0.2s",
     }}>
       {confirmed && (
-        <span style={{ color: "#fb923c", fontSize: 13, flexShrink: 0, lineHeight: 1 }}>✓</span>
+        <span style={{ color: "#fb923c", fontSize: 16, flexShrink: 0, lineHeight: 1 }}>✓</span>
       )}
       <input
         style={{
           flex: 1, background: "none", border: "none", outline: "none",
-          fontSize: 13,
+          fontSize: 16,
           color: (hasText || confirmed) ? "#f1f5f9" : "#64748b",
           fontWeight: confirmed ? 500 : 400,
         }}
@@ -176,21 +172,19 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter" && hasText && !confirmed) onConfirm(); }}
       />
-      {/* Clear button — when confirmed OR when typing (dish field) */}
       {showClear && onClear && (
         <button onClick={onClear} style={{
           background: "none", border: "none", color: "#64748b",
-          fontSize: 11, cursor: "pointer", flexShrink: 0, padding: "0 4px",
+          fontSize: 13, cursor: "pointer", flexShrink: 0, padding: "0 4px",
         }}>очистить</button>
       )}
-      {/* Checkmark */}
       {showCheck && (
         <button
           onClick={() => { if (hasText && !confirmed) onConfirm(); }}
           style={{
             background: confirmed ? "rgba(234,88,12,0.2)" : "rgba(255,255,255,0.08)",
             border: confirmed ? "1px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 7, width: 30, height: 30,
+            borderRadius: 8, width: 36, height: 36,
             display: "flex", alignItems: "center", justifyContent: "center",
             flexShrink: 0, cursor: confirmed ? "default" : "pointer",
           }}>
@@ -201,23 +195,83 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
   );
 }
 
+// ── DualSlider — touch + mouse drag ─────────────────────────────────────────
+
+function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
+  const trackRef = useRef(null);
+  const dragging = useRef(null);
+
+  const getPct = val => ((val - min) / (max - min)) * 100;
+
+  const valFromEvent = e => {
+    const rect = trackRef.current.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    return Math.round(min + (pct / 100) * (max - min));
+  };
+
+  const startDrag = (thumb, e) => {
+    if (disabled) return;
+    e.preventDefault();
+    dragging.current = thumb;
+
+    const onMove = ev => {
+      const val = valFromEvent(ev);
+      if (dragging.current === "min") onChange(Math.min(val, valMax - 50), valMax);
+      else onChange(valMin, Math.max(val, valMin + 50));
+    };
+
+    const onUp = () => {
+      dragging.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onUp);
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("touchend", onUp);
+  };
+
+  const minPct = getPct(valMin);
+  const maxPct = getPct(valMax);
+
+  return (
+    <div ref={trackRef}
+      style={{ position: "relative", height: 4, background: "rgba(255,255,255,0.07)", borderRadius: 2, margin: "10px 0 8px", opacity: disabled ? 0.3 : 1 }}>
+      {/* Fill */}
+      <div style={{ position: "absolute", height: 4, background: "rgba(234,88,12,0.5)", borderRadius: 2, left: `${minPct}%`, right: `${100 - maxPct}%` }} />
+      {/* Left thumb */}
+      <div
+        onMouseDown={e => startDrag("min", e)}
+        onTouchStart={e => startDrag("min", e)}
+        style={{ position: "absolute", top: -8, left: `calc(${minPct}% - 10px)`, width: 20, height: 20, background: "#fb923c", borderRadius: "50%", boxShadow: "0 0 6px rgba(234,88,12,0.7)", cursor: disabled ? "default" : "grab", touchAction: "none", zIndex: 2 }} />
+      {/* Right thumb */}
+      <div
+        onMouseDown={e => startDrag("max", e)}
+        onTouchStart={e => startDrag("max", e)}
+        style={{ position: "absolute", top: -8, left: `calc(${maxPct}% - 10px)`, width: 20, height: 20, background: "#fb923c", borderRadius: "50%", boxShadow: "0 0 6px rgba(234,88,12,0.7)", cursor: disabled ? "default" : "grab", touchAction: "none", zIndex: 2 }} />
+    </div>
+  );
+}
+
 // ── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [lang, setLang] = useState("ru");
   const t = DATA[lang];
 
-  // Dish
   const [dish, setDish] = useState("");
   const [dishConfirmed, setDishConfirmed] = useState(false);
 
-  // Products
   const [activeCat, setActiveCat] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [productInput, setProductInput] = useState("");
   const [productConfirmed, setProductConfirmed] = useState(false);
 
-  // Filters
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [calMin, setCalMin] = useState(100);
   const [calMax, setCalMax] = useState(500);
   const [calAny, setCalAny] = useState(false);
@@ -225,7 +279,6 @@ export default function App() {
   const [diffChip, setDiffChip] = useState("Любая");
   const [activeDiets, setActiveDiets] = useState(new Set());
 
-  // Results
   const [recipes, setRecipes] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -234,55 +287,26 @@ export default function App() {
   const [openIdx, setOpenIdx] = useState(null);
   const [copiedIdx, setCopiedIdx] = useState(null);
 
-  const trackRef = useRef(null);
-
-  // ── Dish ──
+  // Dish
   const confirmDish = () => { if (dish.trim()) setDishConfirmed(true); };
   const clearDish = () => { setDish(""); setDishConfirmed(false); };
   const handleDishChange = v => { setDish(v); setDishConfirmed(false); };
 
-  // ── Product field ──
+  // Product field
   const confirmProduct = () => {
     const v = productInput.trim();
-    if (v) {
-      setSelected(prev => new Set([...prev, v]));
-      setProductInput("");
-      setProductConfirmed(false);
-    }
+    if (v) { setSelected(prev => new Set([...prev, v])); setProductInput(""); setProductConfirmed(false); }
   };
   const clearProduct = () => { setProductInput(""); setProductConfirmed(false); };
   const handleProductChange = v => { setProductInput(v); setProductConfirmed(false); };
 
-  // ── Remove single product ──
-  const removeProduct = item => {
-    setSelected(prev => { const n = new Set(prev); n.delete(item); return n; });
-  };
-
-  // ── Category ──
+  const removeProduct = item => setSelected(prev => { const n = new Set(prev); n.delete(item); return n; });
   const handleCatClick = key => setActiveCat(key);
+  const toggle = item => setSelected(prev => { const n = new Set(prev); n.has(item) ? n.delete(item) : n.add(item); return n; });
+  const toggleDiet = d => setActiveDiets(prev => { const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n; });
 
-  // ── Toggle product chip ──
-  const toggle = item => setSelected(prev => {
-    const n = new Set(prev); n.has(item) ? n.delete(item) : n.add(item); return n;
-  });
+  const handleSlider = (newMin, newMax) => { setCalMin(newMin); setCalMax(newMax); };
 
-  // ── Diet ──
-  const toggleDiet = d => setActiveDiets(prev => {
-    const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n;
-  });
-
-  // ── Slider ──
-  const handleTrackClick = e => {
-    if (!trackRef.current || calAny) return;
-    const rect = trackRef.current.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const val = Math.round(100 + (pct / 100) * 900);
-    const midPct = (((calMin - 100) / 900) + ((calMax - 100) / 900)) / 2 * 100;
-    if (pct < midPct) setCalMin(Math.min(val, calMax - 50));
-    else setCalMax(Math.max(val, calMin + 50));
-  };
-
-  // ── Generate ──
   const generate = useCallback(async () => {
     const hasDish = dishConfirmed && dish.trim();
     const hasIngredients = selected.size > 0;
@@ -308,7 +332,6 @@ export default function App() {
     setLoading(false);
   }, [dish, dishConfirmed, selected, calMin, calMax, calAny, timeChip, diffChip, activeDiets, lang]);
 
-  // ── Show more ──
   const showMore = useCallback(async () => {
     const hasDish = dishConfirmed && dish.trim();
     const hasIngredients = selected.size > 0;
@@ -333,7 +356,6 @@ export default function App() {
     setLoadingMore(false);
   }, [dish, dishConfirmed, selected, recipes, calMin, calMax, calAny, timeChip, diffChip, activeDiets, lang]);
 
-  // ── Share / Shop ──
   const handleShare = async r => {
     const text = `${r.emoji} ${r.name}\n⏱ ${r.time} ${t.min}\n\n${r.ingredients.join(", ")}`;
     if (navigator.share) await navigator.share({ title: r.name, text });
@@ -347,30 +369,30 @@ export default function App() {
   const reset = () => { setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); };
   const canGenerate = (dishConfirmed && dish.trim()) || selected.size > 0;
 
-  // ── Styles ──
-  const sLabel = { fontSize: 9, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 6 };
-  const sDiv = { height: 1, background: "rgba(255,255,255,0.05)", margin: "10px 0" };
-  const sFilterBlock = { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "9px 11px" };
-  const sChip = active => ({ background: active ? "rgba(234,88,12,0.12)" : "rgba(255,255,255,0.04)", border: active ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 6, color: active ? "#fb923c" : "#64748b", fontSize: 10, padding: "3px 8px", cursor: "pointer" });
-  const sPill = active => ({ background: active ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.04)", border: active ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 20, color: active ? "#6ee7b7" : "#64748b", fontSize: 10, padding: "4px 10px", cursor: "pointer" });
+  // Styles
+  const sLabel = { fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 8 };
+  const sDiv = { height: 1, background: "rgba(255,255,255,0.05)", margin: "12px 0" };
+  const sFilterBlock = { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 14px" };
+  const sChip = active => ({ background: active ? "rgba(234,88,12,0.12)" : "rgba(255,255,255,0.04)", border: active ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 8, color: active ? "#fb923c" : "#64748b", fontSize: 14, padding: "6px 12px", cursor: "pointer" });
+  const sPill = active => ({ background: active ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.04)", border: active ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 20, color: active ? "#6ee7b7" : "#64748b", fontSize: 14, padding: "7px 14px", cursor: "pointer" });
 
   return (
     <div style={{ minHeight: "100vh", background: "#0d0f14", display: "flex", justifyContent: "center", padding: "20px 16px 48px", fontFamily: "system-ui,-apple-system,sans-serif" }}>
-      <div style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, padding: 20 }}>
+      <div style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, padding: 22 }}>
 
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", lineHeight: 1.2, marginBottom: 3 }}>{t.title}</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>{t.subtitle}</div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>{t.title}</div>
+            <div style={{ fontSize: 13, color: "#64748b" }}>{t.subtitle}</div>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             <button onClick={() => { if (navigator.share) navigator.share({ title: t.title, url: window.location.href }); }}
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#64748b", padding: "5px 8px", cursor: "pointer", display: "flex", alignItems: "center" }}>
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <ShareSVG />
             </button>
             <button onClick={() => setLang(l => l === "ru" ? "en" : "ru")}
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#64748b", fontSize: 11, fontWeight: 700, padding: "5px 10px", cursor: "pointer" }}>
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 9, color: "#64748b", fontSize: 13, fontWeight: 700, padding: "6px 12px", cursor: "pointer" }}>
               {lang === "ru" ? "EN" : "RU"}
             </button>
           </div>
@@ -379,59 +401,59 @@ export default function App() {
         {/* Results */}
         {(recipes || noResults || apiError) ? (
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>{t.results}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 14 }}>{t.results}</div>
 
             {noResults && (
-              <div style={{ textAlign: "center", padding: "28px 12px" }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
-                <div style={{ fontSize: 14, fontWeight: 500, color: "#f1f5f9", marginBottom: 8 }}>{t.noResults}</div>
-                <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.6, marginBottom: 16 }}>{t.noResultsDesc}</div>
-                <button onClick={reset} style={{ background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)", borderRadius: 50, color: "#fb923c", fontSize: 12, fontWeight: 600, padding: "10px 20px", cursor: "pointer" }}>{t.changeParams}</button>
+              <div style={{ textAlign: "center", padding: "32px 12px" }}>
+                <div style={{ fontSize: 40, marginBottom: 14 }}>🔍</div>
+                <div style={{ fontSize: 17, fontWeight: 500, color: "#f1f5f9", marginBottom: 10 }}>{t.noResults}</div>
+                <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6, marginBottom: 18 }}>{t.noResultsDesc}</div>
+                <button onClick={reset} style={{ background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)", borderRadius: 50, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "12px 24px", cursor: "pointer" }}>{t.changeParams}</button>
               </div>
             )}
 
             {apiError && (
-              <div style={{ textAlign: "center", padding: "28px 12px" }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
-                <div style={{ fontSize: 14, fontWeight: 500, color: "#f1f5f9", marginBottom: 8 }}>{t.errorTitle}</div>
-                <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.6, marginBottom: 16 }}>{t.errorDesc}</div>
-                <button onClick={generate} style={{ background: "#ea580c", border: "none", borderRadius: 50, color: "#fff", fontSize: 12, fontWeight: 600, padding: "10px 20px", cursor: "pointer" }}>{t.retry}</button>
+              <div style={{ textAlign: "center", padding: "32px 12px" }}>
+                <div style={{ fontSize: 40, marginBottom: 14 }}>⚠️</div>
+                <div style={{ fontSize: 17, fontWeight: 500, color: "#f1f5f9", marginBottom: 10 }}>{t.errorTitle}</div>
+                <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6, marginBottom: 18 }}>{t.errorDesc}</div>
+                <button onClick={generate} style={{ background: "#ea580c", border: "none", borderRadius: 50, color: "#fff", fontSize: 14, fontWeight: 600, padding: "12px 24px", cursor: "pointer" }}>{t.retry}</button>
               </div>
             )}
 
             {recipes && recipes.map((r, i) => (
-              <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, marginBottom: 10, overflow: "hidden" }}>
-                <div onClick={() => setOpenIdx(openIdx === i ? null : i)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 14px", cursor: "pointer" }}>
-                  <span style={{ fontSize: 26 }}>{r.emoji}</span>
+              <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
+                <div onClick={() => setOpenIdx(openIdx === i ? null : i)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "15px 16px", cursor: "pointer" }}>
+                  <span style={{ fontSize: 30 }}>{r.emoji}</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9", marginBottom: 3 }}>{r.name}</div>
-                    <div style={{ fontSize: 11, color: "#64748b" }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: "#f1f5f9", marginBottom: 4 }}>{r.name}</div>
+                    <div style={{ fontSize: 13, color: "#64748b" }}>
                       ⏱ {r.time} {t.min}
                       <span style={{ color: "#4ade80", marginLeft: 8 }}>● {t.diff[r.difficulty] || r.difficulty}</span>
                       {r.calories && <span style={{ color: "#fb923c", marginLeft: 8 }}>● {r.calories} {t.kcal}</span>}
                     </div>
                   </div>
-                  <span style={{ color: "#64748b", fontSize: 10 }}>{openIdx === i ? "▲" : "▼"}</span>
+                  <span style={{ color: "#64748b", fontSize: 12 }}>{openIdx === i ? "▲" : "▼"}</span>
                 </div>
                 {openIdx === i && (
-                  <div style={{ padding: "12px 14px 14px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 12 }}>
+                  <div style={{ padding: "14px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
                       {r.ingredients.map((ing, j) => (
-                        <span key={j} style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 6, color: "#6ee7b7", fontSize: 11, padding: "3px 8px" }}>{ing}</span>
+                        <span key={j} style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 8, color: "#6ee7b7", fontSize: 13, padding: "4px 10px" }}>{ing}</span>
                       ))}
                     </div>
-                    <div style={{ fontSize: 9, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>{t.howto}</div>
+                    <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>{t.howto}</div>
                     {r.steps.map((step, j) => (
-                      <div key={j} style={{ display: "flex", gap: 9, alignItems: "flex-start", marginBottom: 7 }}>
-                        <span style={{ background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.3)", borderRadius: "50%", color: "#fb923c", fontSize: 10, fontWeight: 700, minWidth: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{j + 1}</span>
-                        <span style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.5, textAlign: "left" }}>{step}</span>
+                      <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
+                        <span style={{ background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.3)", borderRadius: "50%", color: "#fb923c", fontSize: 12, fontWeight: 700, minWidth: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{j + 1}</span>
+                        <span style={{ fontSize: 14, color: "#94a3b8", lineHeight: 1.5, textAlign: "left" }}>{step}</span>
                       </div>
                     ))}
-                    <div style={{ display: "flex", gap: 7, marginTop: 12 }}>
-                      <button onClick={() => handleShare(r)} style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 9, color: "#64748b", fontSize: 11, padding: "8px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                    <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                      <button onClick={() => handleShare(r)} style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#64748b", fontSize: 13, padding: "10px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                         <ShareSVG /> {t.share}
                       </button>
-                      <button onClick={() => handleShopList(r, i)} style={{ flex: 1, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: 9, color: "#6ee7b7", fontSize: 11, padding: "8px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                      <button onClick={() => handleShopList(r, i)} style={{ flex: 1, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: 10, color: "#6ee7b7", fontSize: 13, padding: "10px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                         {copiedIdx === i ? "✓ " + t.copiedMsg : t.shopList}
                       </button>
                     </div>
@@ -442,18 +464,18 @@ export default function App() {
 
             {recipes && (
               <button onClick={showMore} disabled={loadingMore}
-                style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)", borderRadius: 50, color: "#fb923c", fontSize: 13, fontWeight: 600, padding: "12px 16px", cursor: loadingMore ? "wait" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, opacity: loadingMore ? 0.7 : 1 }}>
+                style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)", borderRadius: 50, color: "#fb923c", fontSize: 15, fontWeight: 600, padding: "14px 16px", cursor: loadingMore ? "wait" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, opacity: loadingMore ? 0.7 : 1 }}>
                 {loadingMore ? t.loadingMore : t.showMore}
               </button>
             )}
-            <button onClick={reset} style={{ width: "100%", background: "none", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 50, color: "#64748b", fontSize: 12, padding: "10px 16px", cursor: "pointer", marginTop: 6 }}>
+            <button onClick={reset} style={{ width: "100%", background: "none", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 50, color: "#64748b", fontSize: 14, padding: "12px 16px", cursor: "pointer", marginTop: 8 }}>
               {t.back}
             </button>
           </div>
 
         ) : (
           <>
-            {/* Dish field — showClearWhenTyping=true: очистить появляется при вводе */}
+            {/* Dish field */}
             <SmartField
               placeholder={t.dishPlaceholder}
               value={dish}
@@ -465,38 +487,41 @@ export default function App() {
             />
 
             {/* Or divider */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 12px" }}>
               <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.05)" }} />
-              <span style={{ fontSize: 10, color: "#64748b" }}>{t.orProducts}</span>
+              <span style={{ fontSize: 12, color: "#64748b" }}>{t.orProducts}</span>
               <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.05)" }} />
             </div>
 
-            {/* Selected products scroll row */}
+            {/* Selected products — overflow hidden, scroll only inside */}
             {selected.size > 0 && (
-              <div style={{ marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <span style={sLabel}>{t.selectedLabel}: {selected.size}</span>
-                  <button onClick={() => setSelected(new Set())} style={{ background: "none", border: "none", color: "#64748b", fontSize: 10, cursor: "pointer" }}>{t.clearAll}</button>
+                  <button onClick={() => setSelected(new Set())} style={{ background: "none", border: "none", color: "#64748b", fontSize: 12, cursor: "pointer" }}>{t.clearAll}</button>
                 </div>
-                <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
-                  {[...selected].map(item => (
-                    <div key={item} style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(234,88,12,0.13)", border: "1px solid rgba(234,88,12,0.4)", borderRadius: 20, color: "#fed7aa", fontSize: 11, padding: "4px 10px", whiteSpace: "nowrap", flexShrink: 0 }}>
-                      ✓ {item}
-                      <button onClick={() => removeProduct(item)} style={{ background: "none", border: "none", color: "#fb923c", fontSize: 13, cursor: "pointer", lineHeight: 1, padding: 0, marginLeft: 2 }}>×</button>
-                    </div>
-                  ))}
+                {/* overflow hidden на внешнем, scroll на внутреннем */}
+                <div style={{ overflow: "hidden" }}>
+                  <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, scrollbarWidth: "none" }}>
+                    {[...selected].map(item => (
+                      <div key={item} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(234,88,12,0.13)", border: "1px solid rgba(234,88,12,0.4)", borderRadius: 20, color: "#fed7aa", fontSize: 14, padding: "6px 12px", whiteSpace: "nowrap", flexShrink: 0 }}>
+                        ✓ {item}
+                        <button onClick={() => removeProduct(item)} style={{ background: "none", border: "none", color: "#fb923c", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0, marginLeft: 2 }}>×</button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Categories */}
             <span style={sLabel}>{t.catLabel}</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
               {Object.entries(t.cats).map(([key, { label, icon }]) => (
                 <div key={key} onClick={() => handleCatClick(key)}
-                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: activeCat === key ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)", border: activeCat === key ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "7px 8px", minWidth: 52, cursor: "pointer" }}>
-                  <span style={{ fontSize: 16 }}>{icon}</span>
-                  <span style={{ fontSize: 10, color: activeCat === key ? "#fb923c" : "#64748b" }}>{label}</span>
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: activeCat === key ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)", border: activeCat === key ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "10px 12px", minWidth: 64, cursor: "pointer" }}>
+                  <span style={{ fontSize: 22 }}>{icon}</span>
+                  <span style={{ fontSize: 12, color: activeCat === key ? "#fb923c" : "#64748b" }}>{label}</span>
                 </div>
               ))}
             </div>
@@ -505,11 +530,11 @@ export default function App() {
             {activeCat && (
               <>
                 <div style={sDiv} />
-                <span style={{ ...sLabel, marginBottom: 8 }}>{t.prodLabel}</span>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                <span style={{ ...sLabel, marginBottom: 10 }}>{t.prodLabel}</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
                   {t.items[activeCat].map(item => (
                     <button key={item} onClick={() => toggle(item)}
-                      style={{ background: selected.has(item) ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)", border: selected.has(item) ? "1.5px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: selected.has(item) ? "#fed7aa" : "#64748b", fontSize: 12, padding: "5px 10px", cursor: "pointer" }}>
+                      style={{ background: selected.has(item) ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)", border: selected.has(item) ? "1.5px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: selected.has(item) ? "#fed7aa" : "#64748b", fontSize: 15, padding: "8px 14px", cursor: "pointer" }}>
                       {selected.has(item) ? "✓ " : ""}{item}
                     </button>
                   ))}
@@ -528,60 +553,60 @@ export default function App() {
 
             <div style={sDiv} />
 
-            {/* Filters */}
-            <span style={sLabel}>{t.filterLabel}</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 10 }}>
+            {/* Filters toggle button */}
+            <button
+              onClick={() => setFiltersOpen(o => !o)}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "13px 16px", cursor: "pointer", marginBottom: filtersOpen ? 12 : 16 }}>
+              <span style={{ fontSize: 15, fontWeight: 600, color: "#94a3b8" }}>{t.filters}</span>
+              <span style={{ fontSize: 13, color: "#64748b" }}>{filtersOpen ? "▲" : "▼"}</span>
+            </button>
 
-              {/* Calorie slider */}
-              <div style={sFilterBlock}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
-                  <span style={{ fontSize: 10, color: "#64748b", textAlign: "left" }}>{t.calories}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "#fb923c" }}>
-                    {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
-                  </span>
-                </div>
-                <div ref={trackRef} onClick={handleTrackClick}
-                  style={{ position: "relative", height: 3, background: "rgba(255,255,255,0.07)", borderRadius: 2, marginBottom: 8, cursor: calAny ? "default" : "pointer", opacity: calAny ? 0.3 : 1 }}>
-                  <div style={{ position: "absolute", height: 3, background: "rgba(234,88,12,0.5)", borderRadius: 2, left: `${((calMin - 100) / 900) * 100}%`, right: `${100 - ((calMax - 100) / 900) * 100}%` }} />
-                  <div style={{ position: "absolute", top: -7, left: `calc(${((calMin - 100) / 900) * 100}% - 8px)`, width: 16, height: 16, background: "#fb923c", borderRadius: "50%", boxShadow: "0 0 5px rgba(234,88,12,0.6)" }} />
-                  <div style={{ position: "absolute", top: -7, left: `calc(${((calMax - 100) / 900) * 100}% - 8px)`, width: 16, height: 16, background: "#fb923c", borderRadius: "50%", boxShadow: "0 0 5px rgba(234,88,12,0.6)" }} />
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#64748b", marginBottom: 8 }}><span>100</span><span>1000</span></div>
-                <div style={{ display: "flex" }}>
+            {/* Filters content */}
+            {filtersOpen && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+
+                {/* Calorie slider */}
+                <div style={sFilterBlock}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, color: "#64748b" }}>{t.calories}</span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "#fb923c" }}>
+                      {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
+                    </span>
+                  </div>
+                  <DualSlider min={100} max={1000} valMin={calMin} valMax={calMax} onChange={handleSlider} disabled={calAny} />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 10 }}><span>100</span><span>1000</span></div>
                   <button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button>
                 </div>
-              </div>
 
-              {/* Time — label left aligned */}
-              <div style={sFilterBlock}>
-                <div style={{ marginBottom: 7 }}>
-                  <span style={{ fontSize: 10, color: "#64748b", textAlign: "left", display: "block" }}>{t.cookTime}</span>
+                {/* Time */}
+                <div style={sFilterBlock}>
+                  <div style={{ marginBottom: 10 }}><span style={{ fontSize: 13, color: "#64748b" }}>{t.cookTime}</span></div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {t.timeChips.map(c => <button key={c} onClick={() => setTimeChip(c)} style={sChip(timeChip === c)}>{c}</button>)}
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                  {t.timeChips.map(c => <button key={c} onClick={() => setTimeChip(c)} style={sChip(timeChip === c)}>{c}</button>)}
+
+                {/* Difficulty */}
+                <div style={sFilterBlock}>
+                  <div style={{ marginBottom: 10 }}><span style={{ fontSize: 13, color: "#64748b" }}>{t.difficulty}</span></div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {t.diffChips.map(c => <button key={c} onClick={() => setDiffChip(c)} style={sChip(diffChip === c)}>{c}</button>)}
+                  </div>
+                </div>
+
+                {/* Diet */}
+                <div style={sFilterBlock}>
+                  <div style={{ marginBottom: 10 }}><span style={{ fontSize: 13, color: "#64748b" }}>{t.diet}</span></div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {t.dietItems.map(d => <button key={d} onClick={() => toggleDiet(d)} style={sPill(activeDiets.has(d))}>{d}</button>)}
+                  </div>
                 </div>
               </div>
-
-              {/* Difficulty — label left aligned */}
-              <div style={sFilterBlock}>
-                <div style={{ marginBottom: 7 }}>
-                  <span style={{ fontSize: 10, color: "#64748b", textAlign: "left", display: "block" }}>{t.difficulty}</span>
-                </div>
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                  {t.diffChips.map(c => <button key={c} onClick={() => setDiffChip(c)} style={sChip(diffChip === c)}>{c}</button>)}
-                </div>
-              </div>
-            </div>
-
-            {/* Diet */}
-            <span style={sLabel}>{t.diet}</span>
-            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 16 }}>
-              {t.dietItems.map(d => <button key={d} onClick={() => toggleDiet(d)} style={sPill(activeDiets.has(d))}>{d}</button>)}
-            </div>
+            )}
 
             {/* CTA */}
             <button onClick={generate} disabled={loading || !canGenerate}
-              style={{ width: "100%", background: (!canGenerate || loading) ? "rgba(234,88,12,0.4)" : "#ea580c", border: "none", borderRadius: 50, color: "#fff", fontSize: 14, fontWeight: 700, padding: "13px 16px", cursor: (!canGenerate || loading) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+              style={{ width: "100%", background: (!canGenerate || loading) ? "rgba(234,88,12,0.4)" : "#ea580c", border: "none", borderRadius: 50, color: "#fff", fontSize: 16, fontWeight: 700, padding: "15px 16px", cursor: (!canGenerate || loading) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
               {loading ? t.loading : t.btn}
             </button>
           </>
