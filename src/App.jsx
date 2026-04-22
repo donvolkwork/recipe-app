@@ -1,27 +1,25 @@
 import { useState, useCallback, useRef } from "react";
-
 const WORKER_URL = "https://recipe-backend-production-416c.up.railway.app/api/recipes";
-
 const DATA = {
   ru: {
-    title: "Что приготовить?",
-    subtitle: "Выбери блюдо или продукты — найдём рецепт",
+    title: "Appetite AI",
+    subtitle: "Готовь без поиска",
     dishPlaceholder: "Введите блюдо...",
     cats: {
-      meat:    { label: "Мясо",     icon: "🥩" },
-      fish:    { label: "Рыба",     icon: "🐟" },
-      veggies: { label: "Овощи",    icon: "🥦" },
-      dairy:   { label: "Молочное", icon: "🧀" },
-      grains:  { label: "Крупы",    icon: "🌾" },
-      other:   { label: "Прочее",   icon: "🧂" },
+      meat:   { label: "Мясо",     icon: "🥩" },
+      fish:   { label: "Рыба",     icon: "🐟" },
+      veggies:{ label: "Овощи",    icon: "🥦" },
+      dairy:  { label: "Молочное", icon: "🧀" },
+      grains: { label: "Крупы",    icon: "🌾" },
+      other:  { label: "Прочее",   icon: "🧂" },
     },
     items: {
-      meat:    ["Курица","Говядина","Свинина","Фарш","Бекон","Индейка","Утка","Кролик"],
-      fish:    ["Лосось","Треска","Тунец","Креветки","Сельдь","Минтай","Форель","Кальмар"],
-      veggies: ["Картошка","Лук","Чеснок","Морковь","Помидор","Перец","Баклажан","Кабачок","Капуста","Шпинат","Брокколи","Огурец"],
-      dairy:   ["Яйца","Молоко","Сыр","Сметана","Масло","Творог","Кефир","Сливки"],
-      grains:  ["Рис","Гречка","Паста","Овсянка","Перловка","Булгур","Чечевица","Нут"],
-      other:   ["Оливковое масло","Соевый соус","Томатная паста","Грибы","Фасоль","Лимон","Мёд","Горчица"],
+      meat:   ["Курица","Говядина","Свинина","Фарш","Бекон","Индейка","Утка","Кролик"],
+      fish:   ["Лосось","Треска","Тунец","Креветки","Сельдь","Минтай","Форель","Кальмар"],
+      veggies:["Картошка","Лук","Чеснок","Морковь","Помидор","Перец","Баклажан","Кабачок","Капуста","Шпинат","Брокколи","Огурец"],
+      dairy:  ["Яйца","Молоко","Сыр","Сметана","Масло","Творог","Кефир","Сливки"],
+      grains: ["Рис","Гречка","Паста","Овсянка","Перловка","Булгур","Чечевица","Нут"],
+      other:  ["Оливковое масло","Соевый соус","Томатная паста","Грибы","Фасоль","Лимон","Мёд","Горчица"],
     },
     addProductPlaceholder: "Добавить продукт...",
     btn: "🔍 Что приготовить?",
@@ -57,26 +55,27 @@ const DATA = {
     catLabel: "Категория",
     prodLabel: "Продукты",
     selectedLabel: "Выбрано",
+    warning: "⚠️",
   },
   en: {
-    title: "What to cook?",
-    subtitle: "Enter a dish or pick ingredients — we'll find a recipe",
+    title: "Appetite AI",
+    subtitle: "Cook without searching",
     dishPlaceholder: "Enter a dish...",
     cats: {
-      meat:    { label: "Meat",    icon: "🥩" },
-      fish:    { label: "Fish",    icon: "🐟" },
-      veggies: { label: "Veggies", icon: "🥦" },
-      dairy:   { label: "Dairy",   icon: "🧀" },
-      grains:  { label: "Grains",  icon: "🌾" },
-      other:   { label: "Other",   icon: "🧂" },
+      meat:   { label: "Meat",    icon: "🥩" },
+      fish:   { label: "Fish",    icon: "🐟" },
+      veggies:{ label: "Veggies", icon: "🥦" },
+      dairy:  { label: "Dairy",   icon: "🧀" },
+      grains: { label: "Grains",  icon: "🌾" },
+      other:  { label: "Other",   icon: "🧂" },
     },
     items: {
-      meat:    ["Chicken","Beef","Pork","Ground meat","Bacon","Turkey","Duck","Rabbit"],
-      fish:    ["Salmon","Cod","Tuna","Shrimp","Herring","Pollock","Trout","Squid"],
-      veggies: ["Potato","Onion","Garlic","Carrot","Tomato","Pepper","Eggplant","Zucchini","Cabbage","Spinach","Broccoli","Cucumber"],
-      dairy:   ["Eggs","Milk","Cheese","Sour cream","Butter","Cottage cheese","Kefir","Cream"],
-      grains:  ["Rice","Buckwheat","Pasta","Oatmeal","Barley","Bulgur","Lentils","Chickpeas"],
-      other:   ["Olive oil","Soy sauce","Tomato paste","Mushrooms","Beans","Lemon","Honey","Mustard"],
+      meat:   ["Chicken","Beef","Pork","Ground meat","Bacon","Turkey","Duck","Rabbit"],
+      fish:   ["Salmon","Cod","Tuna","Shrimp","Herring","Pollock","Trout","Squid"],
+      veggies:["Potato","Onion","Garlic","Carrot","Tomato","Pepper","Eggplant","Zucchini","Cabbage","Spinach","Broccoli","Cucumber"],
+      dairy:  ["Eggs","Milk","Cheese","Sour cream","Butter","Cottage cheese","Kefir","Cream"],
+      grains: ["Rice","Buckwheat","Pasta","Oatmeal","Barley","Bulgur","Lentils","Chickpeas"],
+      other:  ["Olive oil","Soy sauce","Tomato paste","Mushrooms","Beans","Lemon","Honey","Mustard"],
     },
     addProductPlaceholder: "Add ingredient...",
     btn: "🔍 What can I cook?",
@@ -112,16 +111,15 @@ const DATA = {
     catLabel: "Category",
     prodLabel: "Products",
     selectedLabel: "Selected",
+    warning: "⚠️",
   },
 };
-
-// ── SVG ──────────────────────────────────────────────────────────────────────
 
 function CheckIcon({ confirmed }) {
   return (
     <svg width="16" height="16" viewBox="0 0 14 14" fill="none"
-      stroke={confirmed ? "#fb923c" : "#9ca3af"}
-      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      stroke={confirmed ? "#fb923c" : "#9ca3af"} strokeWidth="2.2"
+      strokeLinecap="round" strokeLinejoin="round">
       <polyline points="2,7 5.5,10.5 12,3.5" />
     </svg>
   );
@@ -137,38 +135,26 @@ function ShareSVG() {
   );
 }
 
-// ── SmartField ───────────────────────────────────────────────────────────────
-
 function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClear, showClearWhenTyping }) {
   const hasText = value.trim().length > 0;
   const showCheck = hasText || confirmed;
   const showClear = confirmed || (showClearWhenTyping && hasText && !confirmed);
-
   return (
     <div style={{
       width: "100%",
       background: confirmed ? "rgba(234,88,12,0.08)" : "rgba(255,255,255,0.06)",
       border: confirmed ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.1)",
-      borderRadius: 12,
-      padding: "12px 14px",
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      marginBottom: 12,
-      boxSizing: "border-box",
+      borderRadius: 12, padding: "12px 14px",
+      display: "flex", alignItems: "center", gap: 10,
+      marginBottom: 12, boxSizing: "border-box",
     }}>
-      {confirmed && (
-        <span style={{ color: "#fb923c", fontSize: 16, flexShrink: 0, lineHeight: 1 }}>✓</span>
-      )}
-      <input
-        style={{
-          flex: 1, background: "none", border: "none", outline: "none",
-          fontSize: 16,
-          color: (hasText || confirmed) ? "#f1f5f9" : "#64748b",
-          fontWeight: confirmed ? 500 : 400,
-        }}
-        placeholder={placeholder}
-        value={value}
+      {confirmed && <span style={{ color: "#fb923c", fontSize: 16, flexShrink: 0 }}>✓</span>}
+      <input style={{
+        flex: 1, background: "none", border: "none", outline: "none",
+        fontSize: 16, color: (hasText || confirmed) ? "#f1f5f9" : "#64748b",
+        fontWeight: confirmed ? 500 : 400,
+      }}
+        placeholder={placeholder} value={value}
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter" && hasText && !confirmed) onConfirm(); }}
       />
@@ -179,15 +165,13 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
         }}>очистить</button>
       )}
       {showCheck && (
-        <button
-          onClick={() => { if (hasText && !confirmed) onConfirm(); }}
-          style={{
-            background: confirmed ? "rgba(234,88,12,0.2)" : "rgba(255,255,255,0.08)",
-            border: confirmed ? "1px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8, width: 36, height: 36,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0, cursor: confirmed ? "default" : "pointer",
-          }}>
+        <button onClick={() => { if (hasText && !confirmed) onConfirm(); }} style={{
+          background: confirmed ? "rgba(234,88,12,0.2)" : "rgba(255,255,255,0.08)",
+          border: confirmed ? "1px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.15)",
+          borderRadius: 8, width: 36, height: 36,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0, cursor: confirmed ? "default" : "pointer",
+        }}>
           <CheckIcon confirmed={confirmed} />
         </button>
       )}
@@ -195,32 +179,25 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
   );
 }
 
-// ── DualSlider — touch + mouse drag ─────────────────────────────────────────
-
 function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
   const trackRef = useRef(null);
   const dragging = useRef(null);
-
   const getPct = val => ((val - min) / (max - min)) * 100;
-
   const valFromEvent = e => {
     const rect = trackRef.current.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
     return Math.round(min + (pct / 100) * (max - min));
   };
-
   const startDrag = (thumb, e) => {
     if (disabled) return;
     e.preventDefault();
     dragging.current = thumb;
-
     const onMove = ev => {
       const val = valFromEvent(ev);
       if (dragging.current === "min") onChange(Math.min(val, valMax - 50), valMax);
       else onChange(valMin, Math.max(val, valMin + 50));
     };
-
     const onUp = () => {
       dragging.current = null;
       window.removeEventListener("mousemove", onMove);
@@ -228,36 +205,39 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
       window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", onUp);
     };
-
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     window.addEventListener("touchmove", onMove, { passive: false });
     window.addEventListener("touchend", onUp);
   };
-
   const minPct = getPct(valMin);
   const maxPct = getPct(valMax);
-
   return (
-    <div ref={trackRef}
-      style={{ position: "relative", height: 4, background: "rgba(255,255,255,0.07)", borderRadius: 2, margin: "10px 0 8px", opacity: disabled ? 0.3 : 1 }}>
-      {/* Fill */}
-      <div style={{ position: "absolute", height: 4, background: "rgba(234,88,12,0.5)", borderRadius: 2, left: `${minPct}%`, right: `${100 - maxPct}%` }} />
-      {/* Left thumb */}
-      <div
-        onMouseDown={e => startDrag("min", e)}
-        onTouchStart={e => startDrag("min", e)}
-        style={{ position: "absolute", top: -8, left: `calc(${minPct}% - 10px)`, width: 20, height: 20, background: "#fb923c", borderRadius: "50%", boxShadow: "0 0 6px rgba(234,88,12,0.7)", cursor: disabled ? "default" : "grab", touchAction: "none", zIndex: 2 }} />
-      {/* Right thumb */}
-      <div
-        onMouseDown={e => startDrag("max", e)}
-        onTouchStart={e => startDrag("max", e)}
-        style={{ position: "absolute", top: -8, left: `calc(${maxPct}% - 10px)`, width: 20, height: 20, background: "#fb923c", borderRadius: "50%", boxShadow: "0 0 6px rgba(234,88,12,0.7)", cursor: disabled ? "default" : "grab", touchAction: "none", zIndex: 2 }} />
+    <div ref={trackRef} style={{
+      position: "relative", height: 4,
+      background: "rgba(255,255,255,0.07)", borderRadius: 2,
+      margin: "10px 0 8px", opacity: disabled ? 0.3 : 1,
+    }}>
+      <div style={{
+        position: "absolute", height: 4, background: "rgba(234,88,12,0.5)",
+        borderRadius: 2, left: `${minPct}%`, right: `${100 - maxPct}%`,
+      }} />
+      {["min","max"].map(thumb => (
+        <div key={thumb}
+          onMouseDown={e => startDrag(thumb, e)}
+          onTouchStart={e => startDrag(thumb, e)}
+          style={{
+            position: "absolute", top: -8,
+            left: `calc(${thumb === "min" ? minPct : maxPct}% - 10px)`,
+            width: 20, height: 20, background: "#fb923c", borderRadius: "50%",
+            boxShadow: "0 0 6px rgba(234,88,12,0.7)",
+            cursor: disabled ? "default" : "grab", touchAction: "none", zIndex: 2,
+          }}
+        />
+      ))}
     </div>
   );
 }
-
-// ── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [lang, setLang] = useState("ru");
@@ -265,7 +245,6 @@ export default function App() {
 
   const [dish, setDish] = useState("");
   const [dishConfirmed, setDishConfirmed] = useState(false);
-
   const [activeCat, setActiveCat] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [productInput, setProductInput] = useState("");
@@ -280,6 +259,7 @@ export default function App() {
   const [activeDiets, setActiveDiets] = useState(new Set());
 
   const [recipes, setRecipes] = useState(null);
+  const [warning, setWarning] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(false);
@@ -287,45 +267,59 @@ export default function App() {
   const [openIdx, setOpenIdx] = useState(null);
   const [copiedIdx, setCopiedIdx] = useState(null);
 
-  // Dish
   const confirmDish = () => { if (dish.trim()) setDishConfirmed(true); };
   const clearDish = () => { setDish(""); setDishConfirmed(false); };
   const handleDishChange = v => { setDish(v); setDishConfirmed(false); };
 
-  // Product field
   const confirmProduct = () => {
     const v = productInput.trim();
     if (v) { setSelected(prev => new Set([...prev, v])); setProductInput(""); setProductConfirmed(false); }
   };
   const clearProduct = () => { setProductInput(""); setProductConfirmed(false); };
   const handleProductChange = v => { setProductInput(v); setProductConfirmed(false); };
-
   const removeProduct = item => setSelected(prev => { const n = new Set(prev); n.delete(item); return n; });
-  const handleCatClick = key => setActiveCat(key);
-  const toggle = item => setSelected(prev => { const n = new Set(prev); n.has(item) ? n.delete(item) : n.add(item); return n; });
-  const toggleDiet = d => setActiveDiets(prev => { const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n; });
 
+  // Повторный тап на категорию — сворачивает
+  const handleCatClick = key => setActiveCat(prev => prev === key ? null : key);
+
+  const toggle = item => setSelected(prev => {
+    const n = new Set(prev); n.has(item) ? n.delete(item) : n.add(item); return n;
+  });
+  const toggleDiet = d => setActiveDiets(prev => {
+    const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n;
+  });
   const handleSlider = (newMin, newMax) => { setCalMin(newMin); setCalMax(newMax); };
+
+  const buildBody = (excludeList) => ({
+    ingredients: [...selected],
+    dish: (dishConfirmed && dish.trim()) ? dish.trim() : "",
+    exclude: excludeList,
+    language: lang,
+    calories: { min: calAny ? 0 : calMin, max: calAny ? 99999 : calMax },
+    time: timeChip,
+    difficulty: diffChip,
+    diet: [...activeDiets],
+  });
 
   const generate = useCallback(async () => {
     const hasDish = dishConfirmed && dish.trim();
     const hasIngredients = selected.size > 0;
-    if (!hasDish && !hasIngredients) return;
-    setApiError(false); setNoResults(false); setLoading(true); setRecipes(null); setOpenIdx(null);
+    const hasDiet = activeDiets.size > 0;
+    if (!hasDish && !hasIngredients && !hasDiet) return;
+
+    setApiError(false); setNoResults(false); setWarning(null);
+    setLoading(true); setRecipes(null); setOpenIdx(null);
+
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ingredients: [...selected],
-          dish: hasDish ? dish.trim() : "",
-          exclude: [],
-          filters: { calMin: calAny ? 0 : calMin, calMax: calAny ? 99999 : calMax, time: timeChip, difficulty: diffChip, diets: [...activeDiets], lang },
-        }),
+        body: JSON.stringify(buildBody([])),
         signal: AbortSignal.timeout(30000),
       });
       const text = await res.text();
       const data = JSON.parse(text.replace(/```json|```/g, "").trim());
+      if (data.warning) setWarning(data.warning);
       if (!data.recipes || data.recipes.length === 0) setNoResults(true);
       else { setRecipes(data.recipes); setOpenIdx(0); }
     } catch { setApiError(true); }
@@ -333,25 +327,18 @@ export default function App() {
   }, [dish, dishConfirmed, selected, calMin, calMax, calAny, timeChip, diffChip, activeDiets, lang]);
 
   const showMore = useCallback(async () => {
-    const hasDish = dishConfirmed && dish.trim();
-    const hasIngredients = selected.size > 0;
-    if (!hasDish && !hasIngredients) return;
     setLoadingMore(true);
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ingredients: [...selected],
-          dish: hasDish ? dish.trim() : "",
-          exclude: recipes ? recipes.map(r => r.name) : [],
-          filters: { calMin: calAny ? 0 : calMin, calMax: calAny ? 99999 : calMax, time: timeChip, difficulty: diffChip, diets: [...activeDiets], lang },
-        }),
+        body: JSON.stringify(buildBody(recipes ? recipes.map(r => r.name) : [])),
         signal: AbortSignal.timeout(30000),
       });
       const text = await res.text();
       const data = JSON.parse(text.replace(/```json|```/g, "").trim());
-      if (data.recipes && data.recipes.length > 0) setRecipes(prev => [...(prev || []), ...data.recipes]);
+      if (data.recipes && data.recipes.length > 0)
+        setRecipes(prev => [...(prev || []), ...data.recipes]);
     } catch { /* silent */ }
     setLoadingMore(false);
   }, [dish, dishConfirmed, selected, recipes, calMin, calMax, calAny, timeChip, diffChip, activeDiets, lang]);
@@ -365,27 +352,33 @@ export default function App() {
     navigator.clipboard.writeText(`🛒 ${r.name}\n\n${r.ingredients.join("\n")}`);
     setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
   };
+  const reset = () => { setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); setWarning(null); };
 
-  const reset = () => { setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); };
-  const canGenerate = (dishConfirmed && dish.trim()) || selected.size > 0;
+  const canGenerate = (dishConfirmed && dish.trim()) || selected.size > 0 || activeDiets.size > 0;
 
-  // Styles
   const sLabel = { fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 8 };
   const sDiv = { height: 1, background: "rgba(255,255,255,0.05)", margin: "12px 0" };
   const sFilterBlock = { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 14px" };
-  const sChip = active => ({ background: active ? "rgba(234,88,12,0.12)" : "rgba(255,255,255,0.04)", border: active ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 8, color: active ? "#fb923c" : "#64748b", fontSize: 14, padding: "6px 12px", cursor: "pointer" });
-  const sPill = active => ({ background: active ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.04)", border: active ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 20, color: active ? "#6ee7b7" : "#64748b", fontSize: 14, padding: "7px 14px", cursor: "pointer" });
+  const sChip = active => ({
+    background: active ? "rgba(234,88,12,0.12)" : "rgba(255,255,255,0.04)",
+    border: active ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.07)",
+    borderRadius: 8, color: active ? "#fb923c" : "#64748b",
+    fontSize: 14, padding: "6px 12px", cursor: "pointer",
+  });
+  const sPill = active => ({
+    background: active ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.04)",
+    border: active ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.07)",
+    borderRadius: 20, color: active ? "#6ee7b7" : "#64748b",
+    fontSize: 14, padding: "7px 14px", cursor: "pointer",
+  });
 
   return (
     <div style={{ minHeight: "100vh", background: "#0d0f14", display: "flex", justifyContent: "center", padding: "20px 16px 48px", fontFamily: "system-ui,-apple-system,sans-serif" }}>
       <div style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, padding: 22 }}>
 
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: "#fff", lineHeight: 1.2, marginBottom: 4 }}>{t.title}</div>
-            <div style={{ fontSize: 13, color: "#64748b" }}>{t.subtitle}</div>
-          </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ fontSize: 26, fontWeight: 800, color: "#fff", lineHeight: 1.2 }}>{t.title}</div>
           <div style={{ display: "flex", gap: 6 }}>
             <button onClick={() => { if (navigator.share) navigator.share({ title: t.title, url: window.location.href }); }}
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
@@ -398,10 +391,20 @@ export default function App() {
           </div>
         </div>
 
+        {/* Subtitle — одна строка под заголовком */}
+        <div style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>{t.subtitle}</div>
+
         {/* Results */}
         {(recipes || noResults || apiError) ? (
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 14 }}>{t.results}</div>
+
+            {/* Warning плашка */}
+            {warning && (
+              <div style={{ background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.3)", borderRadius: 12, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#fb923c" }}>
+                {t.warning} {warning}
+              </div>
+            )}
 
             {noResults && (
               <div style={{ textAlign: "center", padding: "32px 12px" }}>
@@ -463,8 +466,7 @@ export default function App() {
             ))}
 
             {recipes && (
-              <button onClick={showMore} disabled={loadingMore}
-                style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)", borderRadius: 50, color: "#fb923c", fontSize: 15, fontWeight: 600, padding: "14px 16px", cursor: loadingMore ? "wait" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, opacity: loadingMore ? 0.7 : 1 }}>
+              <button onClick={showMore} disabled={loadingMore} style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)", borderRadius: 50, color: "#fb923c", fontSize: 15, fontWeight: 600, padding: "14px 16px", cursor: loadingMore ? "wait" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, opacity: loadingMore ? 0.7 : 1 }}>
                 {loadingMore ? t.loadingMore : t.showMore}
               </button>
             )}
@@ -472,19 +474,10 @@ export default function App() {
               {t.back}
             </button>
           </div>
-
         ) : (
           <>
             {/* Dish field */}
-            <SmartField
-              placeholder={t.dishPlaceholder}
-              value={dish}
-              onChange={handleDishChange}
-              onConfirm={confirmDish}
-              confirmed={dishConfirmed}
-              onClear={clearDish}
-              showClearWhenTyping={true}
-            />
+            <SmartField placeholder={t.dishPlaceholder} value={dish} onChange={handleDishChange} onConfirm={confirmDish} confirmed={dishConfirmed} onClear={clearDish} showClearWhenTyping={true} />
 
             {/* Or divider */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 12px" }}>
@@ -493,16 +486,15 @@ export default function App() {
               <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.05)" }} />
             </div>
 
-            {/* Selected products — overflow hidden, scroll only inside */}
+            {/* Selected products — горизонтальный скролл, не растягивает экран */}
             {selected.size > 0 && (
               <div style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <span style={sLabel}>{t.selectedLabel}: {selected.size}</span>
                   <button onClick={() => setSelected(new Set())} style={{ background: "none", border: "none", color: "#64748b", fontSize: 12, cursor: "pointer" }}>{t.clearAll}</button>
                 </div>
-                {/* overflow hidden на внешнем, scroll на внутреннем */}
-                <div style={{ overflow: "hidden" }}>
-                  <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 6, scrollbarWidth: "none" }}>
+                <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                  <div style={{ display: "flex", gap: 8, paddingBottom: 4, width: "max-content" }}>
                     {[...selected].map(item => (
                       <div key={item} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(234,88,12,0.13)", border: "1px solid rgba(234,88,12,0.4)", borderRadius: 20, color: "#fed7aa", fontSize: 14, padding: "6px 12px", whiteSpace: "nowrap", flexShrink: 0 }}>
                         ✓ {item}
@@ -514,14 +506,18 @@ export default function App() {
               </div>
             )}
 
-            {/* Categories */}
+            {/* Categories — 4 в ряд */}
             <span style={sLabel}>{t.catLabel}</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 12 }}>
               {Object.entries(t.cats).map(([key, { label, icon }]) => (
-                <div key={key} onClick={() => handleCatClick(key)}
-                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: activeCat === key ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)", border: activeCat === key ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "10px 12px", minWidth: 64, cursor: "pointer" }}>
+                <div key={key} onClick={() => handleCatClick(key)} style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                  background: activeCat === key ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)",
+                  border: activeCat === key ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.07)",
+                  borderRadius: 12, padding: "10px 6px", cursor: "pointer",
+                }}>
                   <span style={{ fontSize: 22 }}>{icon}</span>
-                  <span style={{ fontSize: 12, color: activeCat === key ? "#fb923c" : "#64748b" }}>{label}</span>
+                  <span style={{ fontSize: 11, color: activeCat === key ? "#fb923c" : "#64748b", textAlign: "center" }}>{label}</span>
                 </div>
               ))}
             </div>
@@ -533,71 +529,62 @@ export default function App() {
                 <span style={{ ...sLabel, marginBottom: 10 }}>{t.prodLabel}</span>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
                   {t.items[activeCat].map(item => (
-                    <button key={item} onClick={() => toggle(item)}
-                      style={{ background: selected.has(item) ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)", border: selected.has(item) ? "1.5px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: selected.has(item) ? "#fed7aa" : "#64748b", fontSize: 15, padding: "8px 14px", cursor: "pointer" }}>
+                    <button key={item} onClick={() => toggle(item)} style={{
+                      background: selected.has(item) ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)",
+                      border: selected.has(item) ? "1.5px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: 10, color: selected.has(item) ? "#fed7aa" : "#64748b",
+                      fontSize: 15, padding: "8px 14px", cursor: "pointer",
+                    }}>
                       {selected.has(item) ? "✓ " : ""}{item}
                     </button>
                   ))}
                 </div>
-                <SmartField
-                  placeholder={t.addProductPlaceholder}
-                  value={productInput}
-                  onChange={handleProductChange}
-                  onConfirm={confirmProduct}
-                  confirmed={productConfirmed}
-                  onClear={clearProduct}
-                  showClearWhenTyping={false}
-                />
+                <SmartField placeholder={t.addProductPlaceholder} value={productInput} onChange={handleProductChange} onConfirm={confirmProduct} confirmed={productConfirmed} onClear={clearProduct} showClearWhenTyping={false} />
               </>
             )}
 
             <div style={sDiv} />
 
-            {/* Filters toggle button */}
-            <button
-              onClick={() => setFiltersOpen(o => !o)}
-              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "13px 16px", cursor: "pointer", marginBottom: filtersOpen ? 12 : 16 }}>
+            {/* Filters toggle */}
+            <button onClick={() => setFiltersOpen(o => !o)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "13px 16px", cursor: "pointer", marginBottom: filtersOpen ? 12 : 16 }}>
               <span style={{ fontSize: 15, fontWeight: 600, color: "#94a3b8" }}>{t.filters}</span>
               <span style={{ fontSize: 13, color: "#64748b" }}>{filtersOpen ? "▲" : "▼"}</span>
             </button>
 
-            {/* Filters content */}
             {filtersOpen && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-
-                {/* Calorie slider */}
+                {/* Calories */}
                 <div style={sFilterBlock}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.calories}</span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "#fb923c" }}>
-                      {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
-                    </span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "#fb923c" }}>{calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}</span>
                   </div>
                   <DualSlider min={100} max={1000} valMin={calMin} valMax={calMax} onChange={handleSlider} disabled={calAny} />
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 10 }}><span>100</span><span>1000</span></div>
-                  <button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button>
+                  {/* Любые — по левому краю */}
+                  <div><button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button></div>
                 </div>
 
-                {/* Time */}
+                {/* Time — по левому краю */}
                 <div style={sFilterBlock}>
                   <div style={{ marginBottom: 10 }}><span style={{ fontSize: 13, color: "#64748b" }}>{t.cookTime}</span></div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start" }}>
                     {t.timeChips.map(c => <button key={c} onClick={() => setTimeChip(c)} style={sChip(timeChip === c)}>{c}</button>)}
                   </div>
                 </div>
 
-                {/* Difficulty */}
+                {/* Difficulty — по левому краю */}
                 <div style={sFilterBlock}>
                   <div style={{ marginBottom: 10 }}><span style={{ fontSize: 13, color: "#64748b" }}>{t.difficulty}</span></div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start" }}>
                     {t.diffChips.map(c => <button key={c} onClick={() => setDiffChip(c)} style={sChip(diffChip === c)}>{c}</button>)}
                   </div>
                 </div>
 
-                {/* Diet */}
+                {/* Diet — по левому краю */}
                 <div style={sFilterBlock}>
                   <div style={{ marginBottom: 10 }}><span style={{ fontSize: 13, color: "#64748b" }}>{t.diet}</span></div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start" }}>
                     {t.dietItems.map(d => <button key={d} onClick={() => toggleDiet(d)} style={sPill(activeDiets.has(d))}>{d}</button>)}
                   </div>
                 </div>
@@ -605,8 +592,7 @@ export default function App() {
             )}
 
             {/* CTA */}
-            <button onClick={generate} disabled={loading || !canGenerate}
-              style={{ width: "100%", background: (!canGenerate || loading) ? "rgba(234,88,12,0.4)" : "#ea580c", border: "none", borderRadius: 50, color: "#fff", fontSize: 16, fontWeight: 700, padding: "15px 16px", cursor: (!canGenerate || loading) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <button onClick={generate} disabled={loading || !canGenerate} style={{ width: "100%", background: (!canGenerate || loading) ? "rgba(234,88,12,0.4)" : "#ea580c", border: "none", borderRadius: 50, color: "#fff", fontSize: 16, fontWeight: 700, padding: "15px 16px", cursor: (!canGenerate || loading) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
               {loading ? t.loading : t.btn}
             </button>
           </>
