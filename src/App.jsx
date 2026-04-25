@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 
 const WORKER_URL = "https://recipe-backend-production-416c.up.railway.app/api/recipes";
+const FEEDBACK_URL = "https://recipe-backend-production-416c.up.railway.app/api/feedback";
 
 const DATA = {
   ru: {
@@ -55,10 +56,12 @@ const DATA = {
     difficulty: "Сложность",
     diet: "Диета",
     filters: "Фильтры",
-    // FIX #7 + #10: добавлена "Для похудения", единый стиль чипсов
     dietItems: ["🥗 Вегетарианское","🌾 Без глютена","☦️ Пост","🥑 Кето","🥣 Для ЖКТ","🔥 Для похудения"],
+    // FIX LANG: значения по умолчанию для фильтров на русском
     timeChips: ["До 20 мин","До 40 мин","До 60 мин","Любое"],
     diffChips: ["Легко","Средне","Сложно","Любая"],
+    timeDefault: "Любое",
+    diffDefault: "Любая",
     calAny: "Любые",
     noResults: "Рецепт не найден",
     noResultsDesc: "С такой комбинацией фильтров рецептов нет. Попробуй расширить диапазон калорий, изменить сложность или убрать диетические ограничения.",
@@ -71,6 +74,15 @@ const DATA = {
     prodLabel: "Продукты",
     selectedLabel: "Выбрано",
     warning: "⚠️",
+    feedbackBtn: "💬 Обратная связь",
+    feedbackTitle: "Напиши нам",
+    feedbackBug: "🐛 Нашёл баг",
+    feedbackIdea: "💡 Предложение",
+    feedbackQuestion: "❓ Вопрос",
+    feedbackPlaceholder: "Опиши проблему или идею...",
+    feedbackSend: "Отправить",
+    feedbackSent: "✓ Отправлено!",
+    feedbackCancel: "Отмена",
   },
   en: {
     title: "Appetite AI",
@@ -125,8 +137,11 @@ const DATA = {
     diet: "Diet",
     filters: "Filters",
     dietItems: ["🥗 Vegetarian","🌾 Gluten-free","☦️ Fasting","🥑 Keto","🥣 Digestive","🔥 Weight loss"],
+    // FIX LANG: значения по умолчанию для фильтров на английском
     timeChips: ["Under 20 min","Under 40 min","Under 60 min","Any"],
     diffChips: ["Easy","Medium","Hard","Any"],
+    timeDefault: "Any",
+    diffDefault: "Any",
     calAny: "Any",
     noResults: "No recipes found",
     noResultsDesc: "No recipes match your filters. Try widening the calorie range, changing difficulty, or removing diet restrictions.",
@@ -139,6 +154,15 @@ const DATA = {
     prodLabel: "Products",
     selectedLabel: "Selected",
     warning: "⚠️",
+    feedbackBtn: "💬 Feedback",
+    feedbackTitle: "Contact us",
+    feedbackBug: "🐛 Bug report",
+    feedbackIdea: "💡 Suggestion",
+    feedbackQuestion: "❓ Question",
+    feedbackPlaceholder: "Describe your issue or idea...",
+    feedbackSend: "Send",
+    feedbackSent: "✓ Sent!",
+    feedbackCancel: "Cancel",
   },
 };
 
@@ -146,12 +170,8 @@ const DATA = {
 
 function PanLogo() {
   return (
-    <div style={{
-      width: 52, height: 52, borderRadius: 14,
-      background: "#ea580c",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      flexShrink: 0,
-    }}>
+    <div style={{ width: 52, height: 52, borderRadius: 14, background: "#ea580c",
+      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
         <circle cx="16" cy="18" r="11" stroke="white" strokeWidth="3"/>
         <line x1="27" y1="18" x2="35" y2="18" stroke="white" strokeWidth="3" strokeLinecap="round"/>
@@ -186,6 +206,114 @@ function CheckIcon({ confirmed }) {
   );
 }
 
+// ─── Кнопка обратной связи ────────────────────────────────────────────────────
+
+function FeedbackButton({ t }) {
+  const [open, setOpen] = useState(false);
+  const [type, setType] = useState("bug");
+  const [text, setText] = useState("");
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const send = async () => {
+    if (!text.trim()) return;
+    setSending(true);
+    try {
+      await fetch(FEEDBACK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, text: text.trim() }),
+      });
+      setSent(true);
+      setTimeout(() => { setOpen(false); setSent(false); setText(""); setType("bug"); }, 1500);
+    } catch { /* silent */ }
+    setSending(false);
+  };
+
+  return (
+    <>
+      {/* Кнопка внизу экрана */}
+      <button onClick={() => setOpen(true)} style={{
+        width: "100%", background: "none",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 50, color: "#334155", fontSize: 13,
+        padding: "10px 16px", cursor: "pointer", marginTop: 12,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+      }}>
+        {t.feedbackBtn}
+      </button>
+
+      {/* Модальное окно */}
+      {open && (
+        <div onClick={() => setOpen(false)} style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+          display: "flex", alignItems: "flex-end", justifyContent: "center",
+          zIndex: 100, padding: "0 16px 24px",
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: "100%", maxWidth: 480, background: "#181c23",
+            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 20,
+          }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 14 }}>
+              {t.feedbackTitle}
+            </div>
+
+            {/* Тип */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              {[
+                { key: "bug", label: t.feedbackBug },
+                { key: "idea", label: t.feedbackIdea },
+                { key: "question", label: t.feedbackQuestion },
+              ].map(item => (
+                <button key={item.key} onClick={() => setType(item.key)} style={{
+                  flex: 1, background: type === item.key ? "rgba(234,88,12,0.15)" : "rgba(255,255,255,0.05)",
+                  border: type === item.key ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 10, color: type === item.key ? "#fb923c" : "#64748b",
+                  fontSize: 12, padding: "8px 4px", cursor: "pointer", fontWeight: type === item.key ? 600 : 400,
+                }}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Текст */}
+            <textarea
+              value={text}
+              onChange={e => setText(e.target.value)}
+              placeholder={t.feedbackPlaceholder}
+              rows={4}
+              style={{
+                width: "100%", background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
+                color: "#f1f5f9", fontSize: 14, padding: "10px 12px",
+                resize: "none", outline: "none", boxSizing: "border-box", marginBottom: 12,
+              }}
+            />
+
+            {/* Кнопки */}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setOpen(false)} style={{
+                flex: 1, background: "none", border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 10, color: "#64748b", fontSize: 14, padding: "10px", cursor: "pointer",
+              }}>
+                {t.feedbackCancel}
+              </button>
+              <button onClick={send} disabled={!text.trim() || sending} style={{
+                flex: 2, background: sent ? "rgba(22,163,74,0.2)" : "rgba(234,88,12,0.15)",
+                border: sent ? "1px solid rgba(22,163,74,0.4)" : "1px solid rgba(234,88,12,0.4)",
+                borderRadius: 10, color: sent ? "#4ade80" : "#fb923c",
+                fontSize: 14, fontWeight: 600, padding: "10px", cursor: "pointer",
+              }}>
+                {sent ? t.feedbackSent : sending ? "..." : t.feedbackSend}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── SmartField ───────────────────────────────────────────────────────────────
 
 function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClear, showClearWhenTyping }) {
@@ -200,15 +328,12 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
       borderRadius: 12, padding: "10px 12px",
       display: "flex", alignItems: "center", gap: 8,
       marginBottom: 12, boxSizing: "border-box",
-      // FIX #1: overflow hidden чтобы кнопка не вылезала за пределы
-      overflow: "hidden",
-      minWidth: 0,
+      overflow: "hidden", minWidth: 0,
     }}>
       {confirmed && <span style={{ color: "#fb923c", fontSize: 14, flexShrink: 0 }}>✓</span>}
       <input
         style={{ flex: 1, background: "none", border: "none", outline: "none", fontSize: 15,
-          color: (hasText || confirmed) ? "#f1f5f9" : "#64748b", fontWeight: confirmed ? 500 : 400,
-          minWidth: 0 }}
+          color: (hasText || confirmed) ? "#f1f5f9" : "#64748b", fontWeight: confirmed ? 500 : 400, minWidth: 0 }}
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -221,7 +346,6 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
         </button>
       )}
       {showCheck && (
-        // FIX #1: кнопка-галочка внутри flex, не абсолютная позиция
         <button onClick={() => { if (hasText && !confirmed) onConfirm(); }}
           style={{ background: confirmed ? "rgba(234,88,12,0.2)" : "rgba(255,255,255,0.08)",
             border: confirmed ? "1px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.15)",
@@ -247,7 +371,6 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
     return Math.round(min + (pct / 100) * (max - min));
   };
   const startDrag = (thumb, e) => {
-    // FIX #6: тап на слайдер сразу активирует, даже если disabled
     e.preventDefault();
     dragging.current = thumb;
     const onMove = ev => {
@@ -271,10 +394,9 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
   const maxPct = getPct(valMax);
   return (
     <div ref={trackRef} style={{ position: "relative", height: 4, background: "rgba(255,255,255,0.07)",
-      borderRadius: 2, margin: "10px 0 8px", opacity: disabled ? 0.4 : 1,
-      // FIX #6: cursor pointer даже когда disabled, чтобы намекнуть на интерактивность
-      cursor: "pointer" }}>
-      <div style={{ position: "absolute", height: 4, background: disabled ? "rgba(255,255,255,0.1)" : "rgba(234,88,12,0.5)",
+      borderRadius: 2, margin: "10px 0 8px", opacity: disabled ? 0.4 : 1, cursor: "pointer" }}>
+      <div style={{ position: "absolute", height: 4,
+        background: disabled ? "rgba(255,255,255,0.1)" : "rgba(234,88,12,0.5)",
         borderRadius: 2, left: `${minPct}%`, right: `${100 - maxPct}%` }}/>
       {["min","max"].map(thumb => (
         <div key={thumb}
@@ -283,8 +405,7 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
           style={{ position: "absolute", top: -8,
             left: `calc(${thumb === "min" ? minPct : maxPct}% - 10px)`,
             width: 20, height: 20,
-            background: disabled ? "#64748b" : "#fb923c",
-            borderRadius: "50%",
+            background: disabled ? "#64748b" : "#fb923c", borderRadius: "50%",
             boxShadow: disabled ? "none" : "0 0 6px rgba(234,88,12,0.7)",
             cursor: "grab", touchAction: "none", zIndex: 2 }}/>
       ))}
@@ -297,21 +418,9 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
 function ShareSheet({ recipe, t, onClose, onCopy, copied }) {
   const text = `${recipe.emoji} ${recipe.name}\n⏱ ${recipe.time} ${t.min}\n\n${recipe.ingredients.join(", ")}`;
   const url = window.location.href;
-
-  const shareTg = () => {
-    window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank");
-    onClose();
-  };
-  const shareVk = () => {
-    window.open(`https://vk.com/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(recipe.name)}&description=${encodeURIComponent(text)}`, "_blank");
-    onClose();
-  };
-  const shareNative = async () => {
-    if (navigator.share) {
-      await navigator.share({ title: recipe.name, text, url });
-    }
-    onClose();
-  };
+  const shareTg = () => { window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank"); onClose(); };
+  const shareVk = () => { window.open(`https://vk.com/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(recipe.name)}&description=${encodeURIComponent(text)}`, "_blank"); onClose(); };
+  const shareNative = async () => { if (navigator.share) await navigator.share({ title: recipe.name, text, url }); onClose(); };
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
@@ -320,45 +429,30 @@ function ShareSheet({ recipe, t, onClose, onCopy, copied }) {
         width: "100%", maxWidth: 480, background: "#181c23",
         border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 20,
       }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 16 }}>
-          {recipe.emoji} {recipe.name}
-        </div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 16 }}>{recipe.emoji} {recipe.name}</div>
         <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-          <button onClick={shareTg} style={{
-            flex: 1, background: "rgba(0,136,204,0.15)", border: "1px solid rgba(0,136,204,0.35)",
-            borderRadius: 12, color: "#38bdf8", fontSize: 14, fontWeight: 600,
-            padding: "12px 8px", cursor: "pointer", display: "flex",
-            flexDirection: "column", alignItems: "center", gap: 6,
-          }}>
-            <span style={{ fontSize: 22 }}>✈️</span>
-            {t.shareTg}
+          <button onClick={shareTg} style={{ flex: 1, background: "rgba(0,136,204,0.15)", border: "1px solid rgba(0,136,204,0.35)",
+            borderRadius: 12, color: "#38bdf8", fontSize: 14, fontWeight: 600, padding: "12px 8px", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 22 }}>✈️</span>{t.shareTg}
           </button>
-          <button onClick={shareVk} style={{
-            flex: 1, background: "rgba(65,105,225,0.15)", border: "1px solid rgba(65,105,225,0.35)",
-            borderRadius: 12, color: "#818cf8", fontSize: 14, fontWeight: 600,
-            padding: "12px 8px", cursor: "pointer", display: "flex",
-            flexDirection: "column", alignItems: "center", gap: 6,
-          }}>
-            <span style={{ fontSize: 22 }}>💙</span>
-            {t.shareVk}
+          <button onClick={shareVk} style={{ flex: 1, background: "rgba(65,105,225,0.15)", border: "1px solid rgba(65,105,225,0.35)",
+            borderRadius: 12, color: "#818cf8", fontSize: 14, fontWeight: 600, padding: "12px 8px", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 22 }}>💙</span>{t.shareVk}
           </button>
           <button onClick={() => { onCopy(); onClose(); }} style={{
             flex: 1, background: copied ? "rgba(22,163,74,0.15)" : "rgba(255,255,255,0.06)",
             border: copied ? "1px solid rgba(22,163,74,0.35)" : "1px solid rgba(255,255,255,0.1)",
             borderRadius: 12, color: copied ? "#4ade80" : "#94a3b8", fontSize: 14, fontWeight: 600,
-            padding: "12px 8px", cursor: "pointer", display: "flex",
-            flexDirection: "column", alignItems: "center", gap: 6,
-          }}>
-            <span style={{ fontSize: 22 }}>{copied ? "✅" : "📋"}</span>
-            {copied ? t.copiedMsg : t.shareCopy}
+            padding: "12px 8px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 22 }}>{copied ? "✅" : "📋"}</span>{copied ? t.copiedMsg : t.shareCopy}
           </button>
         </div>
         {navigator.share && (
-          <button onClick={shareNative} style={{
-            width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
-            borderRadius: 12, color: "#fb923c", fontSize: 14, fontWeight: 600,
-            padding: "12px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          }}>
+          <button onClick={shareNative} style={{ width: "100%", background: "rgba(234,88,12,0.12)",
+            border: "1px solid rgba(234,88,12,0.35)", borderRadius: 12, color: "#fb923c", fontSize: 14,
+            fontWeight: 600, padding: "12px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <ShareSVG color="#fb923c"/> Поделиться через систему
           </button>
         )}
@@ -380,13 +474,13 @@ export default function App() {
   const [productInput, setProductInput] = useState("");
   const [productConfirmed, setProductConfirmed] = useState(false);
 
-  // FIX #5: фильтры открыты по умолчанию
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [calMin, setCalMin] = useState(100);
   const [calMax, setCalMax] = useState(500);
   const [calAny, setCalAny] = useState(true);
-  const [timeChip, setTimeChip] = useState("Любое");
-  const [diffChip, setDiffChip] = useState("Любая");
+  // FIX LANG: храним нейтральный ключ, отображаем через t
+  const [timeIdx, setTimeIdx] = useState(3); // индекс "Любое/Any"
+  const [diffIdx, setDiffIdx] = useState(3); // индекс "Любая/Any"
   const [activeDiets, setActiveDiets] = useState(new Set());
 
   const [recipes, setRecipes] = useState(null);
@@ -415,32 +509,22 @@ export default function App() {
   const handleCatClick = key => setActiveCat(prev => prev === key ? null : key);
   const toggle = item => setSelected(prev => { const n = new Set(prev); n.has(item) ? n.delete(item) : n.add(item); return n; });
   const toggleDiet = d => setActiveDiets(prev => { const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n; });
+  const handleSlider = (newMin, newMax) => { setCalMin(newMin); setCalMax(newMax); setCalAny(false); };
 
-  // FIX #6: тап на слайдер снимает "Любые" автоматически
-  const handleSlider = (newMin, newMax) => {
-    setCalMin(newMin);
-    setCalMax(newMax);
-    setCalAny(false); // автоматически снимаем "Любые" при перетаскивании
-  };
-
-  // FIX #8: смена языка на экране результата — сброс результата
   const handleLangSwitch = () => {
     setLang(l => l === "ru" ? "en" : "ru");
-    setRecipes(null);
-    setNoResults(false);
-    setApiError(false);
-    setOpenIdx(null);
-    setWarning(null);
+    setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); setWarning(null);
   };
 
+  // FIX LANG: берём значение фильтра из текущего языка по индексу
   const buildBody = (excludeList) => ({
     ingredients: [...selected],
     dish: (dishConfirmed && dish.trim()) ? dish.trim() : "",
     exclude: excludeList,
     language: lang,
     calories: { min: calAny ? 0 : calMin, max: calAny ? 99999 : calMax },
-    time: timeChip,
-    difficulty: diffChip,
+    time: t.timeChips[timeIdx],
+    difficulty: t.diffChips[diffIdx],
     diet: [...activeDiets],
   });
 
@@ -464,7 +548,7 @@ export default function App() {
       else { setRecipes(data.recipes); setOpenIdx(0); }
     } catch { setApiError(true); }
     setLoading(false);
-  }, [dish, dishConfirmed, selected, calMin, calMax, calAny, timeChip, diffChip, activeDiets, lang]);
+  }, [dish, dishConfirmed, selected, calMin, calMax, calAny, timeIdx, diffIdx, activeDiets, lang]);
 
   const showMore = useCallback(async () => {
     setLoadingMore(true);
@@ -479,7 +563,7 @@ export default function App() {
       if (data.recipes && data.recipes.length > 0) setRecipes(prev => [...(prev || []), ...data.recipes]);
     } catch { /* silent */ }
     setLoadingMore(false);
-  }, [dish, dishConfirmed, selected, recipes, calMin, calMax, calAny, timeChip, diffChip, activeDiets, lang]);
+  }, [dish, dishConfirmed, selected, recipes, calMin, calMax, calAny, timeIdx, diffIdx, activeDiets, lang]);
 
   const handleShareOpen = r => { setShareCopied(false); setShareRecipe(r); };
   const handleShareCopy = r => {
@@ -488,63 +572,37 @@ export default function App() {
   };
   const handleShopList = (r, idx) => {
     navigator.clipboard.writeText(`🛒 ${r.name}\n\n${r.ingredients.join("\n")}`);
-    setCopiedIdx(idx);
-    setTimeout(() => setCopiedIdx(null), 2000);
+    setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
   };
-
   const reset = () => { setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); setWarning(null); };
 
   const canGenerate = (dishConfirmed && dish.trim()) || selected.size > 0 || activeDiets.size > 0;
 
-  // ── Стили ─────────────────────────────────────────────────────────────────
   const sLabel = { fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 8 };
   const sDiv = { height: 1, background: "rgba(255,255,255,0.05)", margin: "12px 0" };
   const sFilterBlock = { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 14px" };
-
-  // FIX #10: единый стиль чипсов — одинаковые borderRadius для всех (время, сложность, диета)
   const sChip = active => ({
     background: active ? "rgba(234,88,12,0.12)" : "rgba(255,255,255,0.04)",
     border: active ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.07)",
-    borderRadius: 8,
-    color: active ? "#fb923c" : "#64748b",
+    borderRadius: 8, color: active ? "#fb923c" : "#64748b",
     fontSize: 14, padding: "6px 12px", cursor: "pointer",
   });
 
   return (
-    // FIX #3: убираем чёрные поля — margin: 0, padding минимальный, 100vw/100vh
-    <div style={{
-      minHeight: "100vh",
-      width: "100%",
-      background: "#0d0f14",
-      display: "flex",
-      justifyContent: "center",
-      // FIX #3: padding сверху убран, только боковые
-      padding: "0 0 48px",
-      margin: 0,
-      boxSizing: "border-box",
-      fontFamily: "system-ui,-apple-system,sans-serif",
-    }}>
+    <div style={{ minHeight: "100vh", width: "100%", background: "#0d0f14",
+      display: "flex", justifyContent: "center", padding: "0 0 48px",
+      margin: 0, boxSizing: "border-box", fontFamily: "system-ui,-apple-system,sans-serif" }}>
 
       {shareRecipe && (
-        <ShareSheet
-          recipe={shareRecipe} t={t}
+        <ShareSheet recipe={shareRecipe} t={t}
           onClose={() => setShareRecipe(null)}
           onCopy={() => handleShareCopy(shareRecipe)}
-          copied={shareCopied}
-        />
+          copied={shareCopied}/>
       )}
 
-      <div style={{
-        width: "100%",
-        maxWidth: 480,
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        // FIX #3: borderRadius только снизу на мобильном (нет зазора сверху)
-        borderRadius: "0 0 24px 24px",
-        padding: 22,
-        boxSizing: "border-box",
-        overflow: "hidden",
-      }}>
+      <div style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.08)", borderRadius: "0 0 24px 24px",
+        padding: 22, boxSizing: "border-box", overflow: "hidden" }}>
 
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -556,19 +614,14 @@ export default function App() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <button
-              onClick={() => { if (navigator.share) navigator.share({ title: t.title, url: window.location.href }); }}
+            <button onClick={() => { if (navigator.share) navigator.share({ title: t.title, url: window.location.href }); }}
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
-                borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer",
-                display: "flex", alignItems: "center" }}>
+                borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <ShareSVG/>
             </button>
-            {/* FIX #8: используем handleLangSwitch вместо прямого setLang */}
-            <button
-              onClick={handleLangSwitch}
+            <button onClick={handleLangSwitch}
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
-                borderRadius: 9, color: "#64748b", fontSize: 13, fontWeight: 700,
-                padding: "6px 12px", cursor: "pointer" }}>
+                borderRadius: 9, color: "#64748b", fontSize: 13, fontWeight: 700, padding: "6px 12px", cursor: "pointer" }}>
               {lang === "ru" ? "EN" : "RU"}
             </button>
           </div>
@@ -629,7 +682,6 @@ export default function App() {
                   </div>
                   <span style={{ color: "#64748b", fontSize: 12 }}>{openIdx === i ? "▲" : "▼"}</span>
                 </div>
-
                 {openIdx === i && (
                   <div style={{ padding: "14px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
@@ -683,15 +735,16 @@ export default function App() {
                 borderRadius: 50, color: "#64748b", fontSize: 14, padding: "12px 16px", cursor: "pointer", marginTop: 8 }}>
               {t.back}
             </button>
+
+            {/* Кнопка фидбека на экране результата */}
+            <FeedbackButton t={t}/>
           </div>
 
         ) : (
           <>
-            <SmartField
-              placeholder={t.dishPlaceholder} value={dish}
+            <SmartField placeholder={t.dishPlaceholder} value={dish}
               onChange={handleDishChange} onConfirm={confirmDish}
-              confirmed={dishConfirmed} onClear={clearDish} showClearWhenTyping={true}
-            />
+              confirmed={dishConfirmed} onClear={clearDish} showClearWhenTyping={true}/>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 12px" }}>
               <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.05)" }}/>
@@ -733,8 +786,7 @@ export default function App() {
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
                   background: activeCat === key ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)",
                   border: activeCat === key ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.07)",
-                  borderRadius: 12, padding: "9px 4px", cursor: "pointer",
-                }}>
+                  borderRadius: 12, padding: "9px 4px", cursor: "pointer" }}>
                   <span style={{ fontSize: 20 }}>{icon}</span>
                   <span style={{ fontSize: 10, color: activeCat === key ? "#fb923c" : "#64748b", textAlign: "center", lineHeight: 1.2 }}>{label}</span>
                 </div>
@@ -751,29 +803,24 @@ export default function App() {
                       background: selected.has(item) ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)",
                       border: selected.has(item) ? "1.5px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.08)",
                       borderRadius: 10, color: selected.has(item) ? "#fed7aa" : "#64748b",
-                      fontSize: 15, padding: "8px 14px", cursor: "pointer",
-                    }}>
+                      fontSize: 15, padding: "8px 14px", cursor: "pointer" }}>
                       {selected.has(item) ? "✓ " : ""}{item}
                     </button>
                   ))}
                 </div>
-                <SmartField
-                  placeholder={t.addProductPlaceholder} value={productInput}
+                <SmartField placeholder={t.addProductPlaceholder} value={productInput}
                   onChange={handleProductChange} onConfirm={confirmProduct}
-                  confirmed={productConfirmed} onClear={clearProduct} showClearWhenTyping={false}
-                />
+                  confirmed={productConfirmed} onClear={clearProduct} showClearWhenTyping={false}/>
               </>
             )}
 
             <div style={sDiv}/>
 
-            {/* Filters toggle */}
             <button onClick={() => setFiltersOpen(o => !o)} style={{
               width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
               background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
               borderRadius: 12, padding: "13px 16px", cursor: "pointer", marginBottom: filtersOpen ? 12 : 16,
-              boxSizing: "border-box",
-            }}>
+              boxSizing: "border-box" }}>
               <span style={{ fontSize: 15, fontWeight: 600, color: "#94a3b8" }}>{t.filters}</span>
               <span style={{ fontSize: 13, color: "#64748b" }}>{filtersOpen ? "▲" : "▼"}</span>
             </button>
@@ -781,7 +828,6 @@ export default function App() {
             {filtersOpen && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
 
-                {/* Calories */}
                 <div style={sFilterBlock}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.calories}</span>
@@ -789,42 +835,40 @@ export default function App() {
                       {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
                     </span>
                   </div>
-                  {/* FIX #6: слайдер активируется тапом, calAny снимается автоматически в handleSlider */}
                   <DualSlider min={100} max={1000} valMin={calMin} valMax={calMax} onChange={handleSlider} disabled={calAny}/>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 10 }}>
                     <span>100</span><span>1000</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                    <button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button>
-                  </div>
+                  <button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button>
                 </div>
 
-                {/* Time — FIX #4: заголовок по центру */}
                 <div style={sFilterBlock}>
                   <div style={{ textAlign: "center", marginBottom: 10 }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.cookTime}</span>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start" }}>
-                    {t.timeChips.map(c => <button key={c} onClick={() => setTimeChip(c)} style={sChip(timeChip === c)}>{c}</button>)}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {t.timeChips.map((c, i) => (
+                      <button key={c} onClick={() => setTimeIdx(i)} style={sChip(timeIdx === i)}>{c}</button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Difficulty — FIX #4: заголовок по центру */}
                 <div style={sFilterBlock}>
                   <div style={{ textAlign: "center", marginBottom: 10 }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.difficulty}</span>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start" }}>
-                    {t.diffChips.map(c => <button key={c} onClick={() => setDiffChip(c)} style={sChip(diffChip === c)}>{c}</button>)}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {t.diffChips.map((c, i) => (
+                      <button key={c} onClick={() => setDiffIdx(i)} style={sChip(diffIdx === i)}>{c}</button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Diet — FIX #4: заголовок по центру, FIX #10: единый стиль sChip */}
                 <div style={sFilterBlock}>
                   <div style={{ textAlign: "center", marginBottom: 10 }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.diet}</span>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start" }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {t.dietItems.map(d => (
                       <button key={d} onClick={() => toggleDiet(d)} style={sChip(activeDiets.has(d))}>{d}</button>
                     ))}
@@ -834,16 +878,16 @@ export default function App() {
               </div>
             )}
 
-            {/* CTA */}
             <button onClick={generate} disabled={loading || !canGenerate} style={{
               width: "100%", background: (!canGenerate || loading) ? "rgba(234,88,12,0.4)" : "#ea580c",
               border: "none", borderRadius: 50, color: "#fff", fontSize: 16, fontWeight: 700,
               padding: "15px 16px", cursor: (!canGenerate || loading) ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              boxSizing: "border-box",
-            }}>
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxSizing: "border-box" }}>
               {loading ? t.loading : t.btn}
             </button>
+
+            {/* Кнопка фидбека на главном экране */}
+            <FeedbackButton t={t}/>
           </>
         )}
       </div>
