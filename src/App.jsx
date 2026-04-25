@@ -57,11 +57,8 @@ const DATA = {
     diet: "Диета",
     filters: "Фильтры",
     dietItems: ["🥗 Вегетарианское","🌾 Без глютена","☦️ Пост","🥑 Кето","🥣 Для ЖКТ","🔥 Для похудения"],
-    // FIX LANG: значения по умолчанию для фильтров на русском
     timeChips: ["До 20 мин","До 40 мин","До 60 мин","Любое"],
     diffChips: ["Легко","Средне","Сложно","Любая"],
-    timeDefault: "Любое",
-    diffDefault: "Любая",
     calAny: "Любые",
     noResults: "Рецепт не найден",
     noResultsDesc: "С такой комбинацией фильтров рецептов нет. Попробуй расширить диапазон калорий, изменить сложность или убрать диетические ограничения.",
@@ -137,11 +134,8 @@ const DATA = {
     diet: "Diet",
     filters: "Filters",
     dietItems: ["🥗 Vegetarian","🌾 Gluten-free","☦️ Fasting","🥑 Keto","🥣 Digestive","🔥 Weight loss"],
-    // FIX LANG: значения по умолчанию для фильтров на английском
     timeChips: ["Under 20 min","Under 40 min","Under 60 min","Any"],
     diffChips: ["Easy","Medium","Hard","Any"],
-    timeDefault: "Any",
-    diffDefault: "Any",
     calAny: "Any",
     noResults: "No recipes found",
     noResultsDesc: "No recipes match your filters. Try widening the calorie range, changing difficulty, or removing diet restrictions.",
@@ -196,16 +190,6 @@ function ShareSVG({ color = "#64748b" }) {
   );
 }
 
-function CheckIcon({ confirmed }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 14 14" fill="none"
-      stroke={confirmed ? "#fb923c" : "#9ca3af"}
-      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="2,7 5.5,10.5 12,3.5"/>
-    </svg>
-  );
-}
-
 // ─── Кнопка обратной связи ────────────────────────────────────────────────────
 
 function FeedbackButton({ t }) {
@@ -232,7 +216,6 @@ function FeedbackButton({ t }) {
 
   return (
     <>
-      {/* Кнопка внизу экрана */}
       <button onClick={() => setOpen(true)} style={{
         width: "100%", background: "none",
         border: "1px solid rgba(255,255,255,0.07)",
@@ -243,7 +226,6 @@ function FeedbackButton({ t }) {
         {t.feedbackBtn}
       </button>
 
-      {/* Модальное окно */}
       {open && (
         <div onClick={() => setOpen(false)} style={{
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
@@ -257,8 +239,6 @@ function FeedbackButton({ t }) {
             <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 14 }}>
               {t.feedbackTitle}
             </div>
-
-            {/* Тип */}
             <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
               {[
                 { key: "bug", label: t.feedbackBug },
@@ -266,7 +246,8 @@ function FeedbackButton({ t }) {
                 { key: "question", label: t.feedbackQuestion },
               ].map(item => (
                 <button key={item.key} onClick={() => setType(item.key)} style={{
-                  flex: 1, background: type === item.key ? "rgba(234,88,12,0.15)" : "rgba(255,255,255,0.05)",
+                  flex: 1,
+                  background: type === item.key ? "rgba(234,88,12,0.15)" : "rgba(255,255,255,0.05)",
                   border: type === item.key ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.08)",
                   borderRadius: 10, color: type === item.key ? "#fb923c" : "#64748b",
                   fontSize: 12, padding: "8px 4px", cursor: "pointer", fontWeight: type === item.key ? 600 : 400,
@@ -275,35 +256,23 @@ function FeedbackButton({ t }) {
                 </button>
               ))}
             </div>
-
-            {/* Текст */}
-            <textarea
-              value={text}
-              onChange={e => setText(e.target.value)}
-              placeholder={t.feedbackPlaceholder}
-              rows={4}
-              style={{
-                width: "100%", background: "rgba(255,255,255,0.05)",
+            <textarea value={text} onChange={e => setText(e.target.value)}
+              placeholder={t.feedbackPlaceholder} rows={4}
+              style={{ width: "100%", background: "rgba(255,255,255,0.05)",
                 border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
                 color: "#f1f5f9", fontSize: 14, padding: "10px 12px",
-                resize: "none", outline: "none", boxSizing: "border-box", marginBottom: 12,
-              }}
-            />
-
-            {/* Кнопки */}
+                resize: "none", outline: "none", boxSizing: "border-box", marginBottom: 12 }}/>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => setOpen(false)} style={{
                 flex: 1, background: "none", border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 10, color: "#64748b", fontSize: 14, padding: "10px", cursor: "pointer",
-              }}>
+                borderRadius: 10, color: "#64748b", fontSize: 14, padding: "10px", cursor: "pointer" }}>
                 {t.feedbackCancel}
               </button>
               <button onClick={send} disabled={!text.trim() || sending} style={{
                 flex: 2, background: sent ? "rgba(22,163,74,0.2)" : "rgba(234,88,12,0.15)",
                 border: sent ? "1px solid rgba(22,163,74,0.4)" : "1px solid rgba(234,88,12,0.4)",
                 borderRadius: 10, color: sent ? "#4ade80" : "#fb923c",
-                fontSize: 14, fontWeight: 600, padding: "10px", cursor: "pointer",
-              }}>
+                fontSize: 14, fontWeight: 600, padding: "10px", cursor: "pointer" }}>
                 {sent ? t.feedbackSent : sending ? "..." : t.feedbackSend}
               </button>
             </div>
@@ -314,11 +283,10 @@ function FeedbackButton({ t }) {
   );
 }
 
-// ─── SmartField ───────────────────────────────────────────────────────────────
+// ─── SmartField — FIX #5,6,9: убрана кнопка-галочка, подтверждение через Enter и onBlur ──
 
 function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClear, showClearWhenTyping }) {
   const hasText = value.trim().length > 0;
-  const showCheck = hasText || confirmed;
   const showClear = confirmed || (showClearWhenTyping && hasText && !confirmed);
   return (
     <div style={{
@@ -333,25 +301,21 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
       {confirmed && <span style={{ color: "#fb923c", fontSize: 14, flexShrink: 0 }}>✓</span>}
       <input
         style={{ flex: 1, background: "none", border: "none", outline: "none", fontSize: 15,
-          color: (hasText || confirmed) ? "#f1f5f9" : "#64748b", fontWeight: confirmed ? 500 : 400, minWidth: 0 }}
+          color: (hasText || confirmed) ? "#f1f5f9" : "#64748b",
+          fontWeight: confirmed ? 500 : 400, minWidth: 0 }}
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter" && hasText && !confirmed) onConfirm(); }}
+        // FIX #9: тап по любому месту (потеря фокуса) подтверждает поле
+        onBlur={() => { if (hasText && !confirmed) onConfirm(); }}
       />
       {showClear && onClear && (
-        <button onClick={onClear} style={{ background: "none", border: "none", color: "#64748b",
-          fontSize: 12, cursor: "pointer", flexShrink: 0, padding: "0 2px", whiteSpace: "nowrap" }}>
+        // FIX #5,6: кнопка-галочка убрана, осталась только "очистить"
+        <button onMouseDown={e => e.preventDefault()} onClick={onClear}
+          style={{ background: "none", border: "none", color: "#64748b",
+            fontSize: 12, cursor: "pointer", flexShrink: 0, padding: "0 2px", whiteSpace: "nowrap" }}>
           очистить
-        </button>
-      )}
-      {showCheck && (
-        <button onClick={() => { if (hasText && !confirmed) onConfirm(); }}
-          style={{ background: confirmed ? "rgba(234,88,12,0.2)" : "rgba(255,255,255,0.08)",
-            border: confirmed ? "1px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center",
-            justifyContent: "center", flexShrink: 0, cursor: confirmed ? "default" : "pointer" }}>
-          <CheckIcon confirmed={confirmed}/>
         </button>
       )}
     </div>
@@ -427,8 +391,7 @@ function ShareSheet({ recipe, t, onClose, onCopy, copied }) {
       display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 100, padding: "0 16px 24px" }}>
       <div onClick={e => e.stopPropagation()} style={{
         width: "100%", maxWidth: 480, background: "#181c23",
-        border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 20,
-      }}>
+        border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 20 }}>
         <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 16 }}>{recipe.emoji} {recipe.name}</div>
         <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
           <button onClick={shareTg} style={{ flex: 1, background: "rgba(0,136,204,0.15)", border: "1px solid rgba(0,136,204,0.35)",
@@ -478,9 +441,8 @@ export default function App() {
   const [calMin, setCalMin] = useState(100);
   const [calMax, setCalMax] = useState(500);
   const [calAny, setCalAny] = useState(true);
-  // FIX LANG: храним нейтральный ключ, отображаем через t
-  const [timeIdx, setTimeIdx] = useState(3); // индекс "Любое/Any"
-  const [diffIdx, setDiffIdx] = useState(3); // индекс "Любая/Any"
+  const [timeIdx, setTimeIdx] = useState(3);
+  const [diffIdx, setDiffIdx] = useState(3);
   const [activeDiets, setActiveDiets] = useState(new Set());
 
   const [recipes, setRecipes] = useState(null);
@@ -516,17 +478,20 @@ export default function App() {
     setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); setWarning(null);
   };
 
-  // FIX LANG: берём значение фильтра из текущего языка по индексу
-  const buildBody = (excludeList) => ({
+  // FIX #8: используем ref для lang чтобы избежать stale closure в showMore
+  const langRef = useRef(lang);
+  langRef.current = lang;
+
+  const buildBody = useCallback((excludeList) => ({
     ingredients: [...selected],
     dish: (dishConfirmed && dish.trim()) ? dish.trim() : "",
     exclude: excludeList,
-    language: lang,
+    language: langRef.current,
     calories: { min: calAny ? 0 : calMin, max: calAny ? 99999 : calMax },
-    time: t.timeChips[timeIdx],
-    difficulty: t.diffChips[diffIdx],
+    time: DATA[langRef.current].timeChips[timeIdx],
+    difficulty: DATA[langRef.current].diffChips[diffIdx],
     diet: [...activeDiets],
-  });
+  }), [selected, dish, dishConfirmed, calAny, calMin, calMax, timeIdx, diffIdx, activeDiets]);
 
   const generate = useCallback(async () => {
     const hasDish = dishConfirmed && dish.trim();
@@ -548,13 +513,14 @@ export default function App() {
       else { setRecipes(data.recipes); setOpenIdx(0); }
     } catch { setApiError(true); }
     setLoading(false);
-  }, [dish, dishConfirmed, selected, calMin, calMax, calAny, timeIdx, diffIdx, activeDiets, lang]);
+  }, [dish, dishConfirmed, selected, calMin, calMax, calAny, timeIdx, diffIdx, activeDiets, lang, buildBody]);
 
   const showMore = useCallback(async () => {
     setLoadingMore(true);
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
+        // FIX #8: buildBody через ref — всегда берёт актуальный lang
         body: JSON.stringify(buildBody(recipes ? recipes.map(r => r.name) : [])),
         signal: AbortSignal.timeout(30000),
       });
@@ -563,7 +529,7 @@ export default function App() {
       if (data.recipes && data.recipes.length > 0) setRecipes(prev => [...(prev || []), ...data.recipes]);
     } catch { /* silent */ }
     setLoadingMore(false);
-  }, [dish, dishConfirmed, selected, recipes, calMin, calMax, calAny, timeIdx, diffIdx, activeDiets, lang]);
+  }, [recipes, buildBody]);
 
   const handleShareOpen = r => { setShareCopied(false); setShareRecipe(r); };
   const handleShareCopy = r => {
@@ -589,9 +555,11 @@ export default function App() {
   });
 
   return (
+    // FIX #1: убрана красная полоса — нет border снизу, нет borderRadius на контейнере
     <div style={{ minHeight: "100vh", width: "100%", background: "#0d0f14",
-      display: "flex", justifyContent: "center", padding: "0 0 48px",
-      margin: 0, boxSizing: "border-box", fontFamily: "system-ui,-apple-system,sans-serif" }}>
+      display: "flex", justifyContent: "center", alignItems: "flex-start",
+      padding: 0, margin: 0, boxSizing: "border-box",
+      fontFamily: "system-ui,-apple-system,sans-serif" }}>
 
       {shareRecipe && (
         <ShareSheet recipe={shareRecipe} t={t}
@@ -600,9 +568,18 @@ export default function App() {
           copied={shareCopied}/>
       )}
 
-      <div style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.08)", borderRadius: "0 0 24px 24px",
-        padding: 22, boxSizing: "border-box", overflow: "hidden" }}>
+      {/* FIX #1,2: контейнер на всю высоту, без border снизу, без скругления */}
+      <div style={{
+        width: "100%", maxWidth: 480,
+        minHeight: "100vh",
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderBottom: "none",
+        borderRadius: "0 0 0 0",
+        padding: 22,
+        paddingBottom: 48,
+        boxSizing: "border-box",
+      }}>
 
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -736,7 +713,6 @@ export default function App() {
               {t.back}
             </button>
 
-            {/* Кнопка фидбека на экране результата */}
             <FeedbackButton t={t}/>
           </div>
 
@@ -839,11 +815,15 @@ export default function App() {
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 10 }}>
                     <span>100</span><span>1000</span>
                   </div>
-                  <button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button>
+                  {/* FIX #3: чипс "Любые" по левому краю */}
+                  <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                    <button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button>
+                  </div>
                 </div>
 
+                {/* FIX #4: заголовки по левому краю */}
                 <div style={sFilterBlock}>
-                  <div style={{ textAlign: "center", marginBottom: 10 }}>
+                  <div style={{ marginBottom: 10 }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.cookTime}</span>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -854,7 +834,7 @@ export default function App() {
                 </div>
 
                 <div style={sFilterBlock}>
-                  <div style={{ textAlign: "center", marginBottom: 10 }}>
+                  <div style={{ marginBottom: 10 }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.difficulty}</span>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -865,7 +845,7 @@ export default function App() {
                 </div>
 
                 <div style={sFilterBlock}>
-                  <div style={{ textAlign: "center", marginBottom: 10 }}>
+                  <div style={{ marginBottom: 10 }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.diet}</span>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -886,7 +866,6 @@ export default function App() {
               {loading ? t.loading : t.btn}
             </button>
 
-            {/* Кнопка фидбека на главном экране */}
             <FeedbackButton t={t}/>
           </>
         )}
