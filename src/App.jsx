@@ -43,6 +43,8 @@ const DATA = {
     showMore: "🔍 Показать ещё",
     min: "мин",
     kcal: "ккал",
+    // FIX #2: добавлен суффикс порции
+    kcalPer: "ккал/порция",
     diff: { easy: "Легко", medium: "Средне", hard: "Сложно" },
     howto: "Как готовить",
     share: "Поделиться",
@@ -51,7 +53,8 @@ const DATA = {
     shareCopy: "Копировать",
     shopList: "📋 Список покупок",
     orProducts: "или выберите продукты",
-    calories: "Калории на блюдо",
+    // FIX #1: "на блюдо" → "на порцию"
+    calories: "Калории на порцию",
     cookTime: "Время готовки",
     difficulty: "Сложность",
     diet: "Диета",
@@ -71,7 +74,7 @@ const DATA = {
     prodLabel: "Продукты",
     selectedLabel: "Выбрано",
     warning: "⚠️",
-    feedbackBtn: "💬 Обратная связь",
+    feedbackBtn: "Обратная связь",
     feedbackTitle: "Напиши нам",
     feedbackBug: "🐛 Нашёл баг",
     feedbackIdea: "💡 Предложение",
@@ -120,6 +123,7 @@ const DATA = {
     showMore: "🔍 Show more",
     min: "min",
     kcal: "kcal",
+    kcalPer: "kcal/serving",
     diff: { easy: "Easy", medium: "Medium", hard: "Hard" },
     howto: "How to cook",
     share: "Share",
@@ -128,7 +132,7 @@ const DATA = {
     shareCopy: "Copy link",
     shopList: "📋 Shopping list",
     orProducts: "or pick ingredients",
-    calories: "Calories per dish",
+    calories: "Calories per serving",
     cookTime: "Cooking time",
     difficulty: "Difficulty",
     diet: "Diet",
@@ -148,7 +152,7 @@ const DATA = {
     prodLabel: "Products",
     selectedLabel: "Selected",
     warning: "⚠️",
-    feedbackBtn: "💬 Feedback",
+    feedbackBtn: "Feedback",
     feedbackTitle: "Contact us",
     feedbackBug: "🐛 Bug report",
     feedbackIdea: "💡 Suggestion",
@@ -162,11 +166,15 @@ const DATA = {
 
 // ─── Иконки ───────────────────────────────────────────────────────────────────
 
-function PanLogo() {
+// FIX #3: логотип меньше (44px вместо 52px) + кликабельный
+function PanLogo({ onClick }) {
   return (
-    <div style={{ width: 52, height: 52, borderRadius: 14, background: "#ea580c",
-      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+    <div onClick={onClick} style={{
+      width: 44, height: 44, borderRadius: 12, background: "#ea580c",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      flexShrink: 0, cursor: onClick ? "pointer" : "default",
+    }}>
+      <svg width="30" height="30" viewBox="0 0 36 36" fill="none">
         <circle cx="16" cy="18" r="11" stroke="white" strokeWidth="3"/>
         <line x1="27" y1="18" x2="35" y2="18" stroke="white" strokeWidth="3" strokeLinecap="round"/>
         <circle cx="12" cy="14" r="2.5" fill="white"/>
@@ -190,7 +198,17 @@ function ShareSVG({ color = "#64748b" }) {
   );
 }
 
-// ─── Кнопка обратной связи ────────────────────────────────────────────────────
+// FIX #5: иконка чата для кнопки обратной связи
+function ChatSVG() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+      stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 1C3.7 1 1 3.4 1 6.4c0 1.5.6 2.8 1.7 3.8L2 13l2.9-1.3C5.5 11.9 6.2 12 7 12c3.3 0 6-2.4 6-5.5S10.3 1 7 1z"/>
+    </svg>
+  );
+}
+
+// ─── Кнопка обратной связи — FIX #5: вариант 1, просто текст + иконка ────────
 
 function FeedbackButton({ t }) {
   const [open, setOpen] = useState(false);
@@ -216,13 +234,14 @@ function FeedbackButton({ t }) {
 
   return (
     <>
+      {/* FIX #5: минималистичная кнопка — только иконка + текст, без рамки */}
       <button onClick={() => setOpen(true)} style={{
-        width: "100%", background: "none",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 50, color: "#334155", fontSize: 13,
-        padding: "10px 16px", cursor: "pointer", marginTop: 12,
+        width: "100%", background: "none", border: "none",
+        color: "#475569", fontSize: 13,
+        padding: "12px 16px", cursor: "pointer", marginTop: 8,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
       }}>
+        <ChatSVG/>
         {t.feedbackBtn}
       </button>
 
@@ -283,7 +302,7 @@ function FeedbackButton({ t }) {
   );
 }
 
-// ─── SmartField — FIX #5,6,9: убрана кнопка-галочка, подтверждение через Enter и onBlur ──
+// ─── SmartField ───────────────────────────────────────────────────────────────
 
 function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClear, showClearWhenTyping }) {
   const hasText = value.trim().length > 0;
@@ -307,11 +326,9 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
         value={value}
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter" && hasText && !confirmed) onConfirm(); }}
-        // FIX #9: тап по любому месту (потеря фокуса) подтверждает поле
         onBlur={() => { if (hasText && !confirmed) onConfirm(); }}
       />
       {showClear && onClear && (
-        // FIX #5,6: кнопка-галочка убрана, осталась только "очистить"
         <button onMouseDown={e => e.preventDefault()} onClick={onClear}
           style={{ background: "none", border: "none", color: "#64748b",
             fontSize: 12, cursor: "pointer", flexShrink: 0, padding: "0 2px", whiteSpace: "nowrap" }}>
@@ -478,7 +495,6 @@ export default function App() {
     setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); setWarning(null);
   };
 
-  // FIX #8: используем ref для lang чтобы избежать stale closure в showMore
   const langRef = useRef(lang);
   langRef.current = lang;
 
@@ -509,8 +525,13 @@ export default function App() {
       const text = await res.text();
       const data = JSON.parse(text.replace(/```json|```/g, "").trim());
       if (data.warning) setWarning(data.warning);
-      if (!data.recipes || data.recipes.length === 0) setNoResults(true);
-      else { setRecipes(data.recipes); setOpenIdx(0); }
+      if (!data.recipes || data.recipes.length === 0) { setNoResults(true); }
+      else {
+        setRecipes(data.recipes);
+        setOpenIdx(0);
+        // FIX #6: скролл вверх после получения результатов
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     } catch { setApiError(true); }
     setLoading(false);
   }, [dish, dishConfirmed, selected, calMin, calMax, calAny, timeIdx, diffIdx, activeDiets, lang, buildBody]);
@@ -520,7 +541,6 @@ export default function App() {
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        // FIX #8: buildBody через ref — всегда берёт актуальный lang
         body: JSON.stringify(buildBody(recipes ? recipes.map(r => r.name) : [])),
         signal: AbortSignal.timeout(30000),
       });
@@ -540,9 +560,15 @@ export default function App() {
     navigator.clipboard.writeText(`🛒 ${r.name}\n\n${r.ingredients.join("\n")}`);
     setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
   };
-  const reset = () => { setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); setWarning(null); };
+
+  // FIX #3: логотип кликабельный — возвращает на главный экран
+  const reset = () => {
+    setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); setWarning(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const canGenerate = (dishConfirmed && dish.trim()) || selected.size > 0 || activeDiets.size > 0;
+  const isResultScreen = !!(recipes || noResults || apiError);
 
   const sLabel = { fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 8 };
   const sDiv = { height: 1, background: "rgba(255,255,255,0.05)", margin: "12px 0" };
@@ -555,7 +581,6 @@ export default function App() {
   });
 
   return (
-    // FIX #1: убрана красная полоса — нет border снизу, нет borderRadius на контейнере
     <div style={{ minHeight: "100vh", width: "100%", background: "#0d0f14",
       display: "flex", justifyContent: "center", alignItems: "flex-start",
       padding: 0, margin: 0, boxSizing: "border-box",
@@ -568,26 +593,24 @@ export default function App() {
           copied={shareCopied}/>
       )}
 
-      {/* FIX #1,2: контейнер на всю высоту, без border снизу, без скругления */}
+      {/* FIX #4: minHeight 100vh убирает пустое место снизу */}
       <div style={{
-        width: "100%", maxWidth: 480,
-        minHeight: "100vh",
+        width: "100%", maxWidth: 480, minHeight: "100vh",
         background: "rgba(255,255,255,0.04)",
         border: "1px solid rgba(255,255,255,0.08)",
         borderBottom: "none",
-        borderRadius: "0 0 0 0",
-        padding: 22,
-        paddingBottom: 48,
+        padding: 22, paddingBottom: 48,
         boxSizing: "border-box",
       }}>
 
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <PanLogo/>
+            {/* FIX #3: логотип кликабельный на экране результата */}
+            <PanLogo onClick={isResultScreen ? reset : undefined}/>
             <div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: "#fff", lineHeight: 1.1 }}>{t.title}</div>
-              <div style={{ fontSize: 13, color: "#ea580c", fontWeight: 500, marginTop: 2 }}>{t.subtitle}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", lineHeight: 1.1 }}>{t.title}</div>
+              <div style={{ fontSize: 12, color: "#ea580c", fontWeight: 500, marginTop: 2 }}>{t.subtitle}</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -607,7 +630,7 @@ export default function App() {
         <div style={sDiv}/>
 
         {/* ── Results / Form ────────────────────────────────────────────── */}
-        {(recipes || noResults || apiError) ? (
+        {isResultScreen ? (
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1,
               textTransform: "uppercase", marginBottom: 14 }}>{t.results}</div>
@@ -654,7 +677,8 @@ export default function App() {
                     <div style={{ fontSize: 13, color: "#64748b", textAlign: "left" }}>
                       ⏱ {r.time} {t.min}
                       <span style={{ color: "#4ade80", marginLeft: 8 }}>● {t.diff[r.difficulty] || r.difficulty}</span>
-                      {r.calories && <span style={{ color: "#fb923c", marginLeft: 8 }}>● {r.calories} {t.kcal}</span>}
+                      {/* FIX #2: ~285 ккал/порция */}
+                      {r.calories && <span style={{ color: "#fb923c", marginLeft: 8 }}>● ~{r.calories} {t.kcalPer}</span>}
                     </div>
                   </div>
                   <span style={{ color: "#64748b", fontSize: 12 }}>{openIdx === i ? "▲" : "▼"}</span>
@@ -815,13 +839,11 @@ export default function App() {
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 10 }}>
                     <span>100</span><span>1000</span>
                   </div>
-                  {/* FIX #3: чипс "Любые" по левому краю */}
                   <div style={{ display: "flex", justifyContent: "flex-start" }}>
                     <button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button>
                   </div>
                 </div>
 
-                {/* FIX #4: заголовки по левому краю */}
                 <div style={sFilterBlock}>
                   <div style={{ marginBottom: 10 }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.cookTime}</span>
