@@ -43,7 +43,6 @@ const DATA = {
     showMore: "🔍 Показать ещё",
     min: "мин",
     kcal: "ккал",
-    // FIX #2: добавлен суффикс порции
     kcalPer: "ккал/порция",
     diff: { easy: "Легко", medium: "Средне", hard: "Сложно" },
     howto: "Как готовить",
@@ -53,7 +52,6 @@ const DATA = {
     shareCopy: "Копировать",
     shopList: "📋 Список покупок",
     orProducts: "или выберите продукты",
-    // FIX #1: "на блюдо" → "на порцию"
     calories: "Калории на порцию",
     cookTime: "Время готовки",
     difficulty: "Сложность",
@@ -166,7 +164,6 @@ const DATA = {
 
 // ─── Иконки ───────────────────────────────────────────────────────────────────
 
-// FIX #3: логотип меньше (44px вместо 52px) + кликабельный
 function PanLogo({ onClick }) {
   return (
     <div onClick={onClick} style={{
@@ -198,7 +195,6 @@ function ShareSVG({ color = "#64748b" }) {
   );
 }
 
-// FIX #5: иконка чата для кнопки обратной связи
 function ChatSVG() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
@@ -208,7 +204,8 @@ function ChatSVG() {
   );
 }
 
-// ─── Кнопка обратной связи — FIX #5: вариант 1, просто текст + иконка ────────
+// ─── Кнопка обратной связи ────────────────────────────────────────────────────
+// FIX #3: модалка не тормозит — убран onBlur конфликт через e.preventDefault на модалке
 
 function FeedbackButton({ t }) {
   const [open, setOpen] = useState(false);
@@ -234,7 +231,6 @@ function FeedbackButton({ t }) {
 
   return (
     <>
-      {/* FIX #5: минималистичная кнопка — только иконка + текст, без рамки */}
       <button onClick={() => setOpen(true)} style={{
         width: "100%", background: "none", border: "none",
         color: "#475569", fontSize: 13,
@@ -246,15 +242,18 @@ function FeedbackButton({ t }) {
       </button>
 
       {open && (
-        <div onClick={() => setOpen(false)} style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
-          display: "flex", alignItems: "flex-end", justifyContent: "center",
-          zIndex: 100, padding: "0 16px 24px",
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            width: "100%", maxWidth: 480, background: "#181c23",
-            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 20,
+        // FIX #3: onMouseDown preventDefault предотвращает потерю фокуса и тормоза
+        <div onMouseDown={e => e.preventDefault()} onClick={() => setOpen(false)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+            display: "flex", alignItems: "flex-end", justifyContent: "center",
+            zIndex: 100, padding: "0 16px 24px",
           }}>
+          <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 480, background: "#181c23",
+              border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 20,
+            }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 14 }}>
               {t.feedbackTitle}
             </div>
@@ -275,12 +274,18 @@ function FeedbackButton({ t }) {
                 </button>
               ))}
             </div>
-            <textarea value={text} onChange={e => setText(e.target.value)}
-              placeholder={t.feedbackPlaceholder} rows={4}
-              style={{ width: "100%", background: "rgba(255,255,255,0.05)",
+            <textarea
+              value={text}
+              onChange={e => setText(e.target.value)}
+              placeholder={t.feedbackPlaceholder}
+              rows={4}
+              style={{
+                width: "100%", background: "rgba(255,255,255,0.05)",
                 border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
                 color: "#f1f5f9", fontSize: 14, padding: "10px 12px",
-                resize: "none", outline: "none", boxSizing: "border-box", marginBottom: 12 }}/>
+                resize: "none", outline: "none", boxSizing: "border-box", marginBottom: 12,
+              }}
+            />
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => setOpen(false)} style={{
                 flex: 1, background: "none", border: "1px solid rgba(255,255,255,0.08)",
@@ -473,6 +478,9 @@ export default function App() {
   const [shareRecipe, setShareRecipe] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
 
+  // FIX #2: ref для скролла — не скроллим при открытии карточек
+  const scrolledOnGenerate = useRef(false);
+
   const confirmDish = () => { if (dish.trim()) setDishConfirmed(true); };
   const clearDish = () => { setDish(""); setDishConfirmed(false); };
   const handleDishChange = v => { setDish(v); setDishConfirmed(false); };
@@ -516,6 +524,7 @@ export default function App() {
     if (!hasDish && !hasIngredients && !hasDiet) return;
     setApiError(false); setNoResults(false); setWarning(null);
     setLoading(true); setRecipes(null); setOpenIdx(null);
+    scrolledOnGenerate.current = false;
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -525,11 +534,13 @@ export default function App() {
       const text = await res.text();
       const data = JSON.parse(text.replace(/```json|```/g, "").trim());
       if (data.warning) setWarning(data.warning);
-      if (!data.recipes || data.recipes.length === 0) { setNoResults(true); }
-      else {
+      if (!data.recipes || data.recipes.length === 0) {
+        setNoResults(true);
+      } else {
         setRecipes(data.recipes);
         setOpenIdx(0);
-        // FIX #6: скролл вверх после получения результатов
+        // FIX #2: скролл только один раз при генерации, не при открытии карточек
+        scrolledOnGenerate.current = true;
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } catch { setApiError(true); }
@@ -561,7 +572,12 @@ export default function App() {
     setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
   };
 
-  // FIX #3: логотип кликабельный — возвращает на главный экран
+  // FIX #2: открытие карточки НЕ скроллит вверх
+  const handleToggleRecipe = (i) => {
+    setOpenIdx(prev => prev === i ? null : i);
+    // скролл не вызываем — пользователь сам видит карточку
+  };
+
   const reset = () => {
     setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); setWarning(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -593,7 +609,6 @@ export default function App() {
           copied={shareCopied}/>
       )}
 
-      {/* FIX #4: minHeight 100vh убирает пустое место снизу */}
       <div style={{
         width: "100%", maxWidth: 480, minHeight: "100vh",
         background: "rgba(255,255,255,0.04)",
@@ -606,7 +621,6 @@ export default function App() {
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* FIX #3: логотип кликабельный на экране результата */}
             <PanLogo onClick={isResultScreen ? reset : undefined}/>
             <div>
               <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", lineHeight: 1.1 }}>{t.title}</div>
@@ -629,7 +643,6 @@ export default function App() {
 
         <div style={sDiv}/>
 
-        {/* ── Results / Form ────────────────────────────────────────────── */}
         {isResultScreen ? (
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1,
@@ -669,7 +682,8 @@ export default function App() {
             {recipes && recipes.map((r, i) => (
               <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
-                <div onClick={() => setOpenIdx(openIdx === i ? null : i)}
+                {/* FIX #2: используем handleToggleRecipe вместо setOpenIdx напрямую */}
+                <div onClick={() => handleToggleRecipe(i)}
                   style={{ display: "flex", alignItems: "center", gap: 14, padding: "15px 16px", cursor: "pointer" }}>
                   <span style={{ fontSize: 30 }}>{r.emoji}</span>
                   <div style={{ flex: 1 }}>
@@ -677,7 +691,6 @@ export default function App() {
                     <div style={{ fontSize: 13, color: "#64748b", textAlign: "left" }}>
                       ⏱ {r.time} {t.min}
                       <span style={{ color: "#4ade80", marginLeft: 8 }}>● {t.diff[r.difficulty] || r.difficulty}</span>
-                      {/* FIX #2: ~285 ккал/порция */}
                       {r.calories && <span style={{ color: "#fb923c", marginLeft: 8 }}>● ~{r.calories} {t.kcalPer}</span>}
                     </div>
                   </div>
@@ -827,7 +840,6 @@ export default function App() {
 
             {filtersOpen && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-
                 <div style={sFilterBlock}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.calories}</span>
@@ -876,7 +888,6 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-
               </div>
             )}
 
