@@ -40,8 +40,8 @@ const DATA = {
     selected: "выбрано",
     results: "Варианты блюд",
     back: "← Назад",
-    showMore: "🔍 Показать ещё",
-    min: "мин",
+    // FIX #4: "Придумать ещё"
+    showMore: "🔍 Придумать ещё",
     kcal: "ккал",
     kcalPer: "ккал/порция",
     diff: { easy: "Легко", medium: "Средне", hard: "Сложно" },
@@ -73,11 +73,10 @@ const DATA = {
     selectedLabel: "Выбрано",
     warning: "⚠️",
     feedbackBtn: "Обратная связь",
+    // FIX #5: новый текст для упрощённой формы
     feedbackTitle: "Напиши нам",
-    feedbackBug: "🐛 Нашёл баг",
-    feedbackIdea: "💡 Предложение",
-    feedbackQuestion: "❓ Вопрос",
-    feedbackPlaceholder: "Опиши проблему или идею...",
+    feedbackHint: "Нашли баг, есть предложение или вопрос — пишите, мы читаем каждое сообщение.",
+    feedbackPlaceholder: "Ваше сообщение...",
     feedbackSend: "Отправить",
     feedbackSent: "✓ Отправлено!",
     feedbackCancel: "Отмена",
@@ -118,8 +117,7 @@ const DATA = {
     selected: "selected",
     results: "Recipe ideas",
     back: "← Back",
-    showMore: "🔍 Show more",
-    min: "min",
+    showMore: "🔍 Create more",
     kcal: "kcal",
     kcalPer: "kcal/serving",
     diff: { easy: "Easy", medium: "Medium", hard: "Hard" },
@@ -127,7 +125,7 @@ const DATA = {
     share: "Share",
     shareTg: "Telegram",
     shareVk: "VKontakte",
-    shareCopy: "Copy link",
+    shareCopy: "Copy",
     shopList: "📋 Shopping list",
     orProducts: "or pick ingredients",
     calories: "Calories per serving",
@@ -152,10 +150,8 @@ const DATA = {
     warning: "⚠️",
     feedbackBtn: "Feedback",
     feedbackTitle: "Contact us",
-    feedbackBug: "🐛 Bug report",
-    feedbackIdea: "💡 Suggestion",
-    feedbackQuestion: "❓ Question",
-    feedbackPlaceholder: "Describe your issue or idea...",
+    feedbackHint: "Found a bug, have a suggestion or question — write to us, we read every message.",
+    feedbackPlaceholder: "Your message...",
     feedbackSend: "Send",
     feedbackSent: "✓ Sent!",
     feedbackCancel: "Cancel",
@@ -204,15 +200,15 @@ function ChatSVG() {
   );
 }
 
-// ─── Кнопка обратной связи ────────────────────────────────────────────────────
-// FIX #3: модалка не тормозит — убран onBlur конфликт через e.preventDefault на модалке
+// ─── Кнопка обратной связи — FIX #5,6,7: упрощённая форма + тап вне закрывает ──
 
 function FeedbackButton({ t }) {
   const [open, setOpen] = useState(false);
-  const [type, setType] = useState("bug");
   const [text, setText] = useState("");
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+
+  const handleClose = () => { setOpen(false); setText(""); setSent(false); };
 
   const send = async () => {
     if (!text.trim()) return;
@@ -221,10 +217,10 @@ function FeedbackButton({ t }) {
       await fetch(FEEDBACK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, text: text.trim() }),
+        body: JSON.stringify({ text: text.trim() }),
       });
       setSent(true);
-      setTimeout(() => { setOpen(false); setSent(false); setText(""); setType("bug"); }, 1500);
+      setTimeout(() => { handleClose(); }, 1500);
     } catch { /* silent */ }
     setSending(false);
   };
@@ -242,8 +238,10 @@ function FeedbackButton({ t }) {
       </button>
 
       {open && (
-        // FIX #3: onMouseDown preventDefault предотвращает потерю фокуса и тормоза
-        <div onMouseDown={e => e.preventDefault()} onClick={() => setOpen(false)}
+        // FIX #6,7: тап вне закрывает и сбрасывает, onMouseDown предотвращает тормоза
+        <div
+          onMouseDown={e => { if (e.target === e.currentTarget) { e.preventDefault(); handleClose(); } }}
+          onClick={e => { if (e.target === e.currentTarget) handleClose(); }}
           style={{
             position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
             display: "flex", alignItems: "flex-end", justifyContent: "center",
@@ -254,25 +252,12 @@ function FeedbackButton({ t }) {
               width: "100%", maxWidth: 480, background: "#181c23",
               border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 20,
             }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 14 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 6 }}>
               {t.feedbackTitle}
             </div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-              {[
-                { key: "bug", label: t.feedbackBug },
-                { key: "idea", label: t.feedbackIdea },
-                { key: "question", label: t.feedbackQuestion },
-              ].map(item => (
-                <button key={item.key} onClick={() => setType(item.key)} style={{
-                  flex: 1,
-                  background: type === item.key ? "rgba(234,88,12,0.15)" : "rgba(255,255,255,0.05)",
-                  border: type === item.key ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: 10, color: type === item.key ? "#fb923c" : "#64748b",
-                  fontSize: 12, padding: "8px 4px", cursor: "pointer", fontWeight: type === item.key ? 600 : 400,
-                }}>
-                  {item.label}
-                </button>
-              ))}
+            {/* FIX #5: текст-подсказка вместо кнопок типа */}
+            <div style={{ fontSize: 13, color: "#64748b", marginBottom: 14, lineHeight: 1.5 }}>
+              {t.feedbackHint}
             </div>
             <textarea
               value={text}
@@ -284,16 +269,18 @@ function FeedbackButton({ t }) {
                 border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
                 color: "#f1f5f9", fontSize: 14, padding: "10px 12px",
                 resize: "none", outline: "none", boxSizing: "border-box", marginBottom: 12,
+                fontFamily: "system-ui, sans-serif",
               }}
             />
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => setOpen(false)} style={{
+              <button onClick={handleClose} style={{
                 flex: 1, background: "none", border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 10, color: "#64748b", fontSize: 14, padding: "10px", cursor: "pointer" }}>
                 {t.feedbackCancel}
               </button>
               <button onClick={send} disabled={!text.trim() || sending} style={{
-                flex: 2, background: sent ? "rgba(22,163,74,0.2)" : "rgba(234,88,12,0.15)",
+                flex: 2,
+                background: sent ? "rgba(22,163,74,0.2)" : "rgba(234,88,12,0.15)",
                 border: sent ? "1px solid rgba(22,163,74,0.4)" : "1px solid rgba(234,88,12,0.4)",
                 borderRadius: 10, color: sent ? "#4ade80" : "#fb923c",
                 fontSize: 14, fontWeight: 600, padding: "10px", cursor: "pointer" }}>
@@ -399,10 +386,21 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
   );
 }
 
-// ─── Share Sheet ──────────────────────────────────────────────────────────────
+// ─── Share Sheet — FIX #7: добавлены шаги рецепта в текст ────────────────────
 
 function ShareSheet({ recipe, t, onClose, onCopy, copied }) {
-  const text = `${recipe.emoji} ${recipe.name}\n⏱ ${recipe.time} ${t.min}\n\n${recipe.ingredients.join(", ")}`;
+  // FIX #7: полный текст рецепта включая шаги
+  const buildText = (r) => {
+    let txt = `${r.emoji} ${r.name}\n`;
+    txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
+    if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
+    txt += `\n\n🛒 Ингредиенты:\n${r.ingredients.join('\n')}`;
+    txt += `\n\n👨‍🍳 Как готовить:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
+    txt += `\n\n${window.location.href}`;
+    return txt;
+  };
+
+  const text = buildText(recipe);
   const url = window.location.href;
   const shareTg = () => { window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank"); onClose(); };
   const shareVk = () => { window.open(`https://vk.com/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(recipe.name)}&description=${encodeURIComponent(text)}`, "_blank"); onClose(); };
@@ -473,13 +471,11 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(false);
   const [noResults, setNoResults] = useState(false);
-  const [openIdx, setOpenIdx] = useState(null);
+  // FIX #1: Set вместо одного индекса — несколько рецептов открываются независимо
+  const [openSet, setOpenSet] = useState(new Set());
   const [copiedIdx, setCopiedIdx] = useState(null);
   const [shareRecipe, setShareRecipe] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
-
-  // FIX #2: ref для скролла — не скроллим при открытии карточек
-  const scrolledOnGenerate = useRef(false);
 
   const confirmDish = () => { if (dish.trim()) setDishConfirmed(true); };
   const clearDish = () => { setDish(""); setDishConfirmed(false); };
@@ -498,9 +494,18 @@ export default function App() {
   const toggleDiet = d => setActiveDiets(prev => { const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n; });
   const handleSlider = (newMin, newMax) => { setCalMin(newMin); setCalMax(newMax); setCalAny(false); };
 
+  // FIX #1: переключение рецепта не влияет на другие
+  const handleToggleRecipe = (i) => {
+    setOpenSet(prev => {
+      const n = new Set(prev);
+      n.has(i) ? n.delete(i) : n.add(i);
+      return n;
+    });
+  };
+
   const handleLangSwitch = () => {
     setLang(l => l === "ru" ? "en" : "ru");
-    setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); setWarning(null);
+    setRecipes(null); setNoResults(false); setApiError(false); setOpenSet(new Set()); setWarning(null);
   };
 
   const langRef = useRef(lang);
@@ -523,8 +528,7 @@ export default function App() {
     const hasDiet = activeDiets.size > 0;
     if (!hasDish && !hasIngredients && !hasDiet) return;
     setApiError(false); setNoResults(false); setWarning(null);
-    setLoading(true); setRecipes(null); setOpenIdx(null);
-    scrolledOnGenerate.current = false;
+    setLoading(true); setRecipes(null); setOpenSet(new Set());
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -538,9 +542,8 @@ export default function App() {
         setNoResults(true);
       } else {
         setRecipes(data.recipes);
-        setOpenIdx(0);
-        // FIX #2: скролл только один раз при генерации, не при открытии карточек
-        scrolledOnGenerate.current = true;
+        // FIX #1: все свёрнуты по умолчанию
+        setOpenSet(new Set());
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } catch { setApiError(true); }
@@ -563,23 +566,28 @@ export default function App() {
   }, [recipes, buildBody]);
 
   const handleShareOpen = r => { setShareCopied(false); setShareRecipe(r); };
+  // FIX #7: копируем полный рецепт со шагами
   const handleShareCopy = r => {
-    navigator.clipboard.writeText(`${r.emoji} ${r.name}\n⏱ ${r.time} ${t.min}\n\n${r.ingredients.join(", ")}`);
+    let txt = `${r.emoji} ${r.name}\n`;
+    txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
+    if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
+    txt += `\n\n🛒 Ингредиенты:\n${r.ingredients.join('\n')}`;
+    txt += `\n\n👨‍🍳 Как готовить:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
+    txt += `\n\n${window.location.href}`;
+    navigator.clipboard.writeText(txt);
     setShareCopied(true);
   };
+  // FIX #7: список покупок тоже расширен
   const handleShopList = (r, idx) => {
-    navigator.clipboard.writeText(`🛒 ${r.name}\n\n${r.ingredients.join("\n")}`);
+    let txt = `🛒 ${r.name}\n\n`;
+    txt += `Ингредиенты:\n${r.ingredients.join('\n')}`;
+    txt += `\n\nКак готовить:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
+    navigator.clipboard.writeText(txt);
     setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
   };
 
-  // FIX #2: открытие карточки НЕ скроллит вверх
-  const handleToggleRecipe = (i) => {
-    setOpenIdx(prev => prev === i ? null : i);
-    // скролл не вызываем — пользователь сам видит карточку
-  };
-
   const reset = () => {
-    setRecipes(null); setNoResults(false); setApiError(false); setOpenIdx(null); setWarning(null);
+    setRecipes(null); setNoResults(false); setApiError(false); setOpenSet(new Set()); setWarning(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -682,21 +690,21 @@ export default function App() {
             {recipes && recipes.map((r, i) => (
               <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
-                {/* FIX #2: используем handleToggleRecipe вместо setOpenIdx напрямую */}
                 <div onClick={() => handleToggleRecipe(i)}
                   style={{ display: "flex", alignItems: "center", gap: 14, padding: "15px 16px", cursor: "pointer" }}>
                   <span style={{ fontSize: 30 }}>{r.emoji}</span>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, fontWeight: 600, color: "#f1f5f9", marginBottom: 6, textAlign: "left" }}>{r.name}</div>
-                    <div style={{ fontSize: 13, color: "#64748b", textAlign: "left" }}>
-                      ⏱ {r.time} {t.min}
+                    {/* FIX #2,3: убран t.min (дублирование), nowrap чтобы не переносилось */}
+                    <div style={{ fontSize: 13, color: "#64748b", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      ⏱ {r.time}
                       <span style={{ color: "#4ade80", marginLeft: 8 }}>● {t.diff[r.difficulty] || r.difficulty}</span>
                       {r.calories && <span style={{ color: "#fb923c", marginLeft: 8 }}>● ~{r.calories} {t.kcalPer}</span>}
                     </div>
                   </div>
-                  <span style={{ color: "#64748b", fontSize: 12 }}>{openIdx === i ? "▲" : "▼"}</span>
+                  <span style={{ color: "#64748b", fontSize: 12, flexShrink: 0 }}>{openSet.has(i) ? "▲" : "▼"}</span>
                 </div>
-                {openIdx === i && (
+                {openSet.has(i) && (
                   <div style={{ padding: "14px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
                       {r.ingredients.map((ing, j) => (
