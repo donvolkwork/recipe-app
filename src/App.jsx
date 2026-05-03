@@ -449,8 +449,11 @@ function ShareSheet({ recipe, t, onClose, onCopy, copied }) {
 export default function App() {
   const [lang, setLang] = useState("ru");
 
-  useEffect(() => {
-    window.Telegram?.WebApp?.expand();
+useEffect(() => {
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.expand();
+      window.Telegram.WebApp.requestFullscreen?.();
+    }
   }, []);
 
   const t = DATA[lang];
