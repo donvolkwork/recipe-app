@@ -396,7 +396,7 @@ function ShareSheet({ recipe, t, onClose, onCopy, copied }) {
     if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
     txt += `\n\n🛒 Ингредиенты:\n${r.ingredients.join('\n')}`;
     txt += `\n\n👨‍🍳 Как готовить:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
-    txt += `\n\n${window.location.href}`;
+    txt += `\n\nhttps://t.me/appetiteai_bot`;
     return txt;
   };
 
@@ -581,7 +581,7 @@ useEffect(() => {
     if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
     txt += `\n\n🛒 Ингредиенты:\n${r.ingredients.join('\n')}`;
     txt += `\n\n👨‍🍳 Как готовить:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
-    txt += `\n\n${window.location.href}`;
+    txt += `\n\nhttps://t.me/appetiteai_bot`;
     navigator.clipboard.writeText(txt);
     setShareCopied(true);
   };
@@ -644,7 +644,7 @@ useEffect(() => {
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <button onClick={() => { if (navigator.share) navigator.share({ title: t.title, url: window.location.href }); }}
+            <button onClick={() => { if (navigator.share) navigator.share({ title: t.title, url: 'https://t.me/appetiteai_bot' }); }}
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <ShareSVG/>
