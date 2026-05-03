@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 const WORKER_URL = "https://recipe-backend-production-416c.up.railway.app/api/recipes";
 const FEEDBACK_URL = "https://recipe-backend-production-416c.up.railway.app/api/feedback";
@@ -448,6 +448,11 @@ function ShareSheet({ recipe, t, onClose, onCopy, copied }) {
 
 export default function App() {
   const [lang, setLang] = useState("ru");
+
+  useEffect(() => {
+    window.Telegram?.WebApp?.expand();
+  }, []);
+
   const t = DATA[lang];
 
   const [dish, setDish] = useState("");
