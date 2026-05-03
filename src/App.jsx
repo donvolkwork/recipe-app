@@ -452,7 +452,7 @@ export default function App() {
 useEffect(() => {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.expand();
-      window.Telegram.WebApp.requestFullscreen?.();
+      window.Telegram.WebApp.disableVerticalSwipes?.();
     }
   }, []);
 
