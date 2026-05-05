@@ -3,6 +3,9 @@ import { useState, useCallback, useRef, useEffect } from "react";
 const WORKER_URL = "https://recipe-backend-production-416c.up.railway.app/api/recipes";
 const FEEDBACK_URL = "https://recipe-backend-production-416c.up.railway.app/api/feedback";
 
+// FIX #5: единая чистая ссылка на Mini App без хвоста tgWebAppData
+const APP_LINK = "https://t.me/appetiteai_bot";
+
 const DATA = {
   ru: {
     title: "Appetite AI",
@@ -39,13 +42,16 @@ const DATA = {
     clearAll: "очистить всё",
     selected: "выбрано",
     results: "Варианты блюд",
-    back: "← Назад",
-    // FIX #4: "Придумать ещё"
+    // FIX #8: меняем «Назад» на «К фильтрам», добавляем «К моим рецептам»
+    back: "← К фильтрам",
+    toMyRecipes: "← К моим рецептам",
     showMore: "🔍 Придумать ещё",
     kcal: "ккал",
     kcalPer: "ккал/порция",
     diff: { easy: "Легко", medium: "Средне", hard: "Сложно" },
     howto: "Как готовить",
+    // FIX #5/доп: локализованная подпись для шер-текста
+    ingredientsLabel: "Ингредиенты",
     share: "Поделиться",
     shareTg: "Telegram",
     shareVk: "ВКонтакте",
@@ -73,13 +79,13 @@ const DATA = {
     selectedLabel: "Выбрано",
     warning: "⚠️",
     feedbackBtn: "Обратная связь",
-    // FIX #5: новый текст для упрощённой формы
     feedbackTitle: "Напиши нам",
     feedbackHint: "Нашли баг, есть предложение или вопрос — пишите, мы читаем каждое сообщение.",
     feedbackPlaceholder: "Ваше сообщение...",
     feedbackSend: "Отправить",
     feedbackSent: "✓ Отправлено!",
     feedbackCancel: "Отмена",
+    shareViaSystem: "Поделиться через систему",
   },
   en: {
     title: "Appetite AI",
@@ -116,12 +122,14 @@ const DATA = {
     clearAll: "clear all",
     selected: "selected",
     results: "Recipe ideas",
-    back: "← Back",
+    back: "← To filters",
+    toMyRecipes: "← To my recipes",
     showMore: "🔍 Create more",
     kcal: "kcal",
     kcalPer: "kcal/serving",
     diff: { easy: "Easy", medium: "Medium", hard: "Hard" },
     howto: "How to cook",
+    ingredientsLabel: "Ingredients",
     share: "Share",
     shareTg: "Telegram",
     shareVk: "VKontakte",
@@ -155,6 +163,7 @@ const DATA = {
     feedbackSend: "Send",
     feedbackSent: "✓ Sent!",
     feedbackCancel: "Cancel",
+    shareViaSystem: "Share via system",
   },
 };
 
@@ -200,7 +209,18 @@ function ChatSVG() {
   );
 }
 
-// ─── Кнопка обратной связи — FIX #5,6,7: упрощённая форма + тап вне закрывает ──
+// ─── FIX #5: helper для построения текста рецепта с чистой ссылкой ───────────
+function buildRecipeText(r, t) {
+  let txt = `${r.emoji} ${r.name}\n`;
+  txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
+  if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
+  txt += `\n\n🛒 ${t.ingredientsLabel}:\n${r.ingredients.join('\n')}`;
+  txt += `\n\n👨‍🍳 ${t.howto}:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
+  txt += `\n\n${APP_LINK}`;
+  return txt;
+}
+
+// ─── Кнопка обратной связи ────────────────────────────────────────────────────
 
 function FeedbackButton({ t }) {
   const [open, setOpen] = useState(false);
@@ -238,7 +258,6 @@ function FeedbackButton({ t }) {
       </button>
 
       {open && (
-        // FIX #6,7: тап вне закрывает и сбрасывает, onMouseDown предотвращает тормоза
         <div
           onMouseDown={e => { if (e.target === e.currentTarget) { e.preventDefault(); handleClose(); } }}
           onClick={e => { if (e.target === e.currentTarget) handleClose(); }}
@@ -255,7 +274,6 @@ function FeedbackButton({ t }) {
             <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 6 }}>
               {t.feedbackTitle}
             </div>
-            {/* FIX #5: текст-подсказка вместо кнопок типа */}
             <div style={{ fontSize: 13, color: "#64748b", marginBottom: 14, lineHeight: 1.5 }}>
               {t.feedbackHint}
             </div>
@@ -386,22 +404,12 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
   );
 }
 
-// ─── Share Sheet — FIX #7: добавлены шаги рецепта в текст ────────────────────
+// ─── Share Sheet — FIX #5: чистая ссылка t.me/appetiteai_bot вместо window.location.href
 
 function ShareSheet({ recipe, t, onClose, onCopy, copied }) {
-  // FIX #7: полный текст рецепта включая шаги
-  const buildText = (r) => {
-    let txt = `${r.emoji} ${r.name}\n`;
-    txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
-    if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
-    txt += `\n\n🛒 Ингредиенты:\n${r.ingredients.join('\n')}`;
-    txt += `\n\n👨‍🍳 Как готовить:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
-    txt += `\n\nhttps://t.me/appetiteai_bot`;
-    return txt;
-  };
-
-  const text = buildText(recipe);
-  const url = window.location.href;
+  const text = buildRecipeText(recipe, t);
+  // FIX #5: используем чистую ссылку на бота, без хвоста tgWebAppData
+  const url = APP_LINK;
   const shareTg = () => { window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank"); onClose(); };
   const shareVk = () => { window.open(`https://vk.com/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(recipe.name)}&description=${encodeURIComponent(text)}`, "_blank"); onClose(); };
   const shareNative = async () => { if (navigator.share) await navigator.share({ title: recipe.name, text, url }); onClose(); };
@@ -436,7 +444,7 @@ function ShareSheet({ recipe, t, onClose, onCopy, copied }) {
           <button onClick={shareNative} style={{ width: "100%", background: "rgba(234,88,12,0.12)",
             border: "1px solid rgba(234,88,12,0.35)", borderRadius: 12, color: "#fb923c", fontSize: 14,
             fontWeight: 600, padding: "12px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <ShareSVG color="#fb923c"/> Поделиться через систему
+            <ShareSVG color="#fb923c"/> {t.shareViaSystem}
           </button>
         )}
       </div>
@@ -449,7 +457,7 @@ function ShareSheet({ recipe, t, onClose, onCopy, copied }) {
 export default function App() {
   const [lang, setLang] = useState("ru");
 
-useEffect(() => {
+  useEffect(() => {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.expand();
       window.Telegram.WebApp.disableVerticalSwipes?.();
@@ -479,11 +487,20 @@ useEffect(() => {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState(false);
   const [noResults, setNoResults] = useState(false);
-  // FIX #1: Set вместо одного индекса — несколько рецептов открываются независимо
   const [openSet, setOpenSet] = useState(new Set());
   const [copiedIdx, setCopiedIdx] = useState(null);
   const [shareRecipe, setShareRecipe] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
+
+  // FIX #8: запоминаем диеты, под которые сгенерированы текущие рецепты
+  // Это нужно чтобы бейджи на экране результата показывали те диеты,
+  // что были на момент генерации, а не текущие выбранные на главной
+  const [resultsDiets, setResultsDiets] = useState([]);
+
+  // FIX #8: показывает находимся ли мы на экране рецептов или на главной
+  // null = главная (если есть recipes — кнопка «К моим рецептам» сверху)
+  // 'results' = экран рецептов (видим список)
+  const [view, setView] = useState(null);
 
   const confirmDish = () => { if (dish.trim()) setDishConfirmed(true); };
   const clearDish = () => { setDish(""); setDishConfirmed(false); };
@@ -502,7 +519,6 @@ useEffect(() => {
   const toggleDiet = d => setActiveDiets(prev => { const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n; });
   const handleSlider = (newMin, newMax) => { setCalMin(newMin); setCalMax(newMax); setCalAny(false); };
 
-  // FIX #1: переключение рецепта не влияет на другие
   const handleToggleRecipe = (i) => {
     setOpenSet(prev => {
       const n = new Set(prev);
@@ -513,7 +529,9 @@ useEffect(() => {
 
   const handleLangSwitch = () => {
     setLang(l => l === "ru" ? "en" : "ru");
+    // При смене языка сбрасываем рецепты — они на старом языке
     setRecipes(null); setNoResults(false); setApiError(false); setOpenSet(new Set()); setWarning(null);
+    setResultsDiets([]); setView(null);
   };
 
   const langRef = useRef(lang);
@@ -537,6 +555,10 @@ useEffect(() => {
     if (!hasDish && !hasIngredients && !hasDiet) return;
     setApiError(false); setNoResults(false); setWarning(null);
     setLoading(true); setRecipes(null); setOpenSet(new Set());
+    // FIX #8: сразу переключаем view на экран результата (показывает лоадер)
+    setView('results');
+    // FIX #8/9: запоминаем диеты под которые генерим — для бейджей в результате
+    setResultsDiets([...activeDiets]);
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -550,7 +572,6 @@ useEffect(() => {
         setNoResults(true);
       } else {
         setRecipes(data.recipes);
-        // FIX #1: все свёрнуты по умолчанию
         setOpenSet(new Set());
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
@@ -574,33 +595,48 @@ useEffect(() => {
   }, [recipes, buildBody]);
 
   const handleShareOpen = r => { setShareCopied(false); setShareRecipe(r); };
-  // FIX #7: копируем полный рецепт со шагами
+
+  // FIX #5: используем универсальный builder с чистой ссылкой и локализацией
   const handleShareCopy = r => {
-    let txt = `${r.emoji} ${r.name}\n`;
-    txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
-    if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
-    txt += `\n\n🛒 Ингредиенты:\n${r.ingredients.join('\n')}`;
-    txt += `\n\n👨‍🍳 Как готовить:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
-    txt += `\n\nhttps://t.me/appetiteai_bot`;
-    navigator.clipboard.writeText(txt);
+    navigator.clipboard.writeText(buildRecipeText(r, t));
     setShareCopied(true);
   };
-  // FIX #7: список покупок тоже расширен
+
   const handleShopList = (r, idx) => {
     let txt = `🛒 ${r.name}\n\n`;
-    txt += `Ингредиенты:\n${r.ingredients.join('\n')}`;
-    txt += `\n\nКак готовить:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
+    txt += `${t.ingredientsLabel}:\n${r.ingredients.join('\n')}`;
+    txt += `\n\n${t.howto}:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
     navigator.clipboard.writeText(txt);
     setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
   };
 
-  const reset = () => {
-    setRecipes(null); setNoResults(false); setApiError(false); setOpenSet(new Set()); setWarning(null);
+  // FIX #8: «← К фильтрам» — возврат на главную БЕЗ сброса рецептов
+  // Сбрасываем только статусы экранов ошибок/пустого результата
+  const backToFilters = () => {
+    setView(null);
+    setApiError(false);
+    setNoResults(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // FIX #8: «← К моим рецептам» — возврат к сохранённым результатам с главной
+  const backToRecipes = () => {
+    setView('results');
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Полный сброс — клик по логотипу или смена языка
+  const resetAll = () => {
+    setRecipes(null); setNoResults(false); setApiError(false);
+    setOpenSet(new Set()); setWarning(null); setResultsDiets([]); setView(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const canGenerate = (dishConfirmed && dish.trim()) || selected.size > 0 || activeDiets.size > 0;
-  const isResultScreen = !!(recipes || noResults || apiError);
+  // FIX #8: экран результата показываем, если view='results' ИЛИ если идёт ошибка/пустой результат
+  const isResultScreen = view === 'results' && (recipes || noResults || apiError || loading);
+  // FIX #8: на главной показываем кнопку «К моим рецептам», если есть сохранённые рецепты
+  const hasStoredRecipes = view === null && recipes && recipes.length > 0;
 
   const sLabel = { fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 8 };
   const sDiv = { height: 1, background: "rgba(255,255,255,0.05)", margin: "12px 0" };
@@ -637,14 +673,15 @@ useEffect(() => {
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <PanLogo onClick={isResultScreen ? reset : undefined}/>
+            {/* FIX #8: клик по логотипу — полный сброс */}
+            <PanLogo onClick={(isResultScreen || hasStoredRecipes) ? resetAll : undefined}/>
             <div>
               <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", lineHeight: 1.1 }}>{t.title}</div>
               <div style={{ fontSize: 12, color: "#ea580c", fontWeight: 500, marginTop: 2 }}>{t.subtitle}</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <button onClick={() => { if (navigator.share) navigator.share({ title: t.title, url: 'https://t.me/appetiteai_bot' }); }}
+            <button onClick={() => { if (navigator.share) navigator.share({ title: t.title, url: APP_LINK }); }}
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <ShareSVG/>
@@ -664,6 +701,24 @@ useEffect(() => {
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1,
               textTransform: "uppercase", marginBottom: 14 }}>{t.results}</div>
 
+            {/* FIX #9: бейджи выбранных диет под заголовком экрана результата */}
+            {resultsDiets.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, marginTop: -6 }}>
+                {resultsDiets.map(d => (
+                  <span key={d} style={{
+                    background: "rgba(234,88,12,0.13)",
+                    border: "1px solid rgba(234,88,12,0.4)",
+                    borderRadius: 20,
+                    color: "#fb923c",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    padding: "4px 12px",
+                    whiteSpace: "nowrap",
+                  }}>{d}</span>
+                ))}
+              </div>
+            )}
+
             {warning && (
               <div style={{ background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.3)",
                 borderRadius: 12, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#fb923c" }}>
@@ -671,19 +726,26 @@ useEffect(() => {
               </div>
             )}
 
-            {noResults && (
+            {loading && (
+              <div style={{ textAlign: "center", padding: "32px 12px" }}>
+                <div style={{ fontSize: 40, marginBottom: 14 }}>👨‍🍳</div>
+                <div style={{ fontSize: 15, color: "#94a3b8", lineHeight: 1.6 }}>{t.loading}</div>
+              </div>
+            )}
+
+            {noResults && !loading && (
               <div style={{ textAlign: "center", padding: "32px 12px" }}>
                 <div style={{ fontSize: 40, marginBottom: 14 }}>🔍</div>
                 <div style={{ fontSize: 17, fontWeight: 500, color: "#f1f5f9", marginBottom: 10 }}>{t.noResults}</div>
                 <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6, marginBottom: 18 }}>{t.noResultsDesc}</div>
-                <button onClick={reset} style={{ background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
+                <button onClick={backToFilters} style={{ background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
                   borderRadius: 50, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "12px 24px", cursor: "pointer" }}>
                   {t.changeParams}
                 </button>
               </div>
             )}
 
-            {apiError && (
+            {apiError && !loading && (
               <div style={{ textAlign: "center", padding: "32px 12px" }}>
                 <div style={{ fontSize: 40, marginBottom: 14 }}>⚠️</div>
                 <div style={{ fontSize: 17, fontWeight: 500, color: "#f1f5f9", marginBottom: 10 }}>{t.errorTitle}</div>
@@ -695,7 +757,7 @@ useEffect(() => {
               </div>
             )}
 
-            {recipes && recipes.map((r, i) => (
+            {!loading && recipes && recipes.map((r, i) => (
               <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
                 <div onClick={() => handleToggleRecipe(i)}
@@ -703,7 +765,6 @@ useEffect(() => {
                   <span style={{ fontSize: 30 }}>{r.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, fontWeight: 600, color: "#f1f5f9", marginBottom: 6, textAlign: "left" }}>{r.name}</div>
-                    {/* FIX #2,3: убран t.min (дублирование), nowrap чтобы не переносилось */}
                     <div style={{ fontSize: 13, color: "#64748b", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       ⏱ {r.time}
                       <span style={{ color: "#4ade80", marginLeft: 8 }}>● {t.diff[r.difficulty] || r.difficulty}</span>
@@ -750,7 +811,7 @@ useEffect(() => {
               </div>
             ))}
 
-            {recipes && (
+            {!loading && recipes && (
               <button onClick={showMore} disabled={loadingMore}
                 style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
                   borderRadius: 50, color: "#fb923c", fontSize: 15, fontWeight: 600, padding: "14px 16px",
@@ -760,17 +821,31 @@ useEffect(() => {
               </button>
             )}
 
-            <button onClick={reset}
-              style={{ width: "100%", background: "none", border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 50, color: "#64748b", fontSize: 14, padding: "12px 16px", cursor: "pointer", marginTop: 8 }}>
-              {t.back}
-            </button>
+            {/* FIX #8: «← К фильтрам» — возврат на главную с сохранением рецептов */}
+            {!loading && (recipes || noResults || apiError) && (
+              <button onClick={backToFilters}
+                style={{ width: "100%", background: "none", border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 50, color: "#64748b", fontSize: 14, padding: "12px 16px", cursor: "pointer", marginTop: 8 }}>
+                {t.back}
+              </button>
+            )}
 
             <FeedbackButton t={t}/>
           </div>
 
         ) : (
           <>
+            {/* FIX #8: кнопка «← К моим рецептам» — видна только если есть сохранённые рецепты */}
+            {hasStoredRecipes && (
+              <button onClick={backToRecipes}
+                style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
+                  borderRadius: 50, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "11px 16px",
+                  cursor: "pointer", marginBottom: 14,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                {t.toMyRecipes}
+              </button>
+            )}
+
             <SmartField placeholder={t.dishPlaceholder} value={dish}
               onChange={handleDishChange} onConfirm={confirmDish}
               confirmed={dishConfirmed} onClear={clearDish} showClearWhenTyping={true}/>
