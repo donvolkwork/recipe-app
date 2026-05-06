@@ -3,9 +3,10 @@ import { useState, useCallback, useRef, useEffect } from "react";
 const WORKER_URL = "https://recipe-backend-production-416c.up.railway.app/api/recipes";
 const FEEDBACK_URL = "https://recipe-backend-production-416c.up.railway.app/api/feedback";
 
-// FIX #5: единая чистая ссылка на Mini App без хвоста tgWebAppData
+// Единая чистая ссылка на Mini App без хвоста tgWebAppData
 const APP_LINK = "https://t.me/appetiteai_bot";
 
+// ─── DATA / Локализация ──────────────────────────────────────────────────────
 const DATA = {
   ru: {
     title: "Appetite AI",
@@ -42,20 +43,19 @@ const DATA = {
     clearAll: "очистить всё",
     selected: "выбрано",
     results: "Варианты блюд",
-    // FIX #8: меняем «Назад» на «К фильтрам», добавляем «К моим рецептам»
     back: "← К фильтрам",
-    toMyRecipes: "← К моим рецептам",
+    toMyRecipes: "К моим рецептам →",
     showMore: "🔍 Придумать ещё",
     kcal: "ккал",
     kcalPer: "ккал/порция",
     diff: { easy: "Легко", medium: "Средне", hard: "Сложно" },
     howto: "Как готовить",
-    // FIX #5/доп: локализованная подпись для шер-текста
     ingredientsLabel: "Ингредиенты",
+    macrosLabel: "БЖУ на 100г",
+    protein: "Белки",
+    fat: "Жиры",
+    carbs: "Углеводы",
     share: "Поделиться",
-    shareTg: "Telegram",
-    shareVk: "ВКонтакте",
-    shareCopy: "Копировать",
     shopList: "📋 Список покупок",
     orProducts: "или выберите продукты",
     calories: "Калории на порцию",
@@ -85,7 +85,18 @@ const DATA = {
     feedbackSend: "Отправить",
     feedbackSent: "✓ Отправлено!",
     feedbackCancel: "Отмена",
-    shareViaSystem: "Поделиться через систему",
+    // Premium / Referral
+    premiumBadge: "✨ PREMIUM",
+    premiumBannerTitle: "🎁 Premium открыт для всех — тестовая фаза",
+    premiumBannerDesc: "Калории, все диеты, избранное — попробуй прямо сейчас!",
+    refTitle: "🎁 Пригласи друга — получи Premium",
+    refDesc: "1 друг = 7 дней Premium • 5 друзей = месяц • 10 = 3 месяца",
+    refShareBtn: "📤 Поделиться ссылкой",
+    refStatsLabel: "Приглашено",
+    refBonusLabel: "Бонус",
+    refDays: "дней",
+    refToNextLabel: "до месяца Premium",
+    refShareText: "🍳 Готовлю с Appetite AI — AI-помощник по рецептам в Telegram!\n\nТебе неделя Premium бесплатно при первом запуске 👇",
   },
   en: {
     title: "Appetite AI",
@@ -123,17 +134,18 @@ const DATA = {
     selected: "selected",
     results: "Recipe ideas",
     back: "← To filters",
-    toMyRecipes: "← To my recipes",
+    toMyRecipes: "To my recipes →",
     showMore: "🔍 Create more",
     kcal: "kcal",
     kcalPer: "kcal/serving",
     diff: { easy: "Easy", medium: "Medium", hard: "Hard" },
     howto: "How to cook",
     ingredientsLabel: "Ingredients",
+    macrosLabel: "Macros per 100g",
+    protein: "Protein",
+    fat: "Fat",
+    carbs: "Carbs",
     share: "Share",
-    shareTg: "Telegram",
-    shareVk: "VKontakte",
-    shareCopy: "Copy",
     shopList: "📋 Shopping list",
     orProducts: "or pick ingredients",
     calories: "Calories per serving",
@@ -163,12 +175,103 @@ const DATA = {
     feedbackSend: "Send",
     feedbackSent: "✓ Sent!",
     feedbackCancel: "Cancel",
-    shareViaSystem: "Share via system",
+    premiumBadge: "✨ PREMIUM",
+    premiumBannerTitle: "🎁 Premium open for everyone — beta phase",
+    premiumBannerDesc: "Calories, all diets, favorites — try it right now!",
+    refTitle: "🎁 Invite a friend — get Premium",
+    refDesc: "1 friend = 7 days Premium • 5 friends = month • 10 = 3 months",
+    refShareBtn: "📤 Share link",
+    refStatsLabel: "Invited",
+    refBonusLabel: "Bonus",
+    refDays: "days",
+    refToNextLabel: "to month of Premium",
+    refShareText: "🍳 Cooking with Appetite AI — your AI recipe assistant in Telegram!\n\nFree week of Premium for you on first launch 👇",
   },
 };
 
-// ─── Иконки ───────────────────────────────────────────────────────────────────
+// ─── Helper: текст рецепта для шеринга/копирования ───────────────────────────
+function buildRecipeText(r, t) {
+  let txt = `${r.emoji} ${r.name}\n`;
+  txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
+  if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
+  txt += `\n\n🛒 ${t.ingredientsLabel}:\n${r.ingredients.join('\n')}`;
+  // БЖУ если есть
+  if (r.protein != null && r.fat != null && r.carbs != null) {
+    txt += `\n\n${t.macrosLabel}: ${t.protein} ${r.protein}г • ${t.fat} ${r.fat}г • ${t.carbs} ${r.carbs}г`;
+  }
+  txt += `\n\n👨‍🍳 ${t.howto}:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
+  txt += `\n\n${APP_LINK}`;
+  return txt;
+}
 
+// ─── CookingLoader: анимированный лоадер «кипящая кастрюля» ───────────────────
+// Чистый SVG + CSS keyframes, никаких сторонних библиотек, работает везде
+function CookingLoader({ text }) {
+  return (
+    <div style={{ textAlign: "center", padding: "32px 12px" }}>
+      <style>{`
+        @keyframes bubbleRise {
+          0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+          20%  { opacity: 0.9; }
+          70%  { opacity: 0.9; transform: translateY(-22px) scale(1); }
+          100% { transform: translateY(-30px) scale(0.4); opacity: 0; }
+        }
+        @keyframes steamRise {
+          0%   { transform: translateY(0) scaleX(1); opacity: 0; }
+          30%  { opacity: 0.55; }
+          100% { transform: translateY(-26px) scaleX(1.4); opacity: 0; }
+        }
+        @keyframes flameFlicker {
+          0%, 100% { transform: scaleY(1) scaleX(1); opacity: 0.95; }
+          50%      { transform: scaleY(0.78) scaleX(1.1); opacity: 0.7; }
+        }
+      `}</style>
+      <div style={{ position: "relative", width: 96, height: 96, margin: "0 auto 18px" }}>
+        <svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">
+          {/* Пар */}
+          <ellipse cx="38" cy="22" rx="3.5" ry="6"
+            fill="#fb923c"
+            style={{ transformOrigin: "38px 28px", animation: "steamRise 2.4s ease-out infinite" }}/>
+          <ellipse cx="50" cy="20" rx="3" ry="5"
+            fill="#fb923c"
+            style={{ transformOrigin: "50px 26px", animation: "steamRise 2.4s ease-out infinite 0.7s" }}/>
+          <ellipse cx="60" cy="22" rx="3.5" ry="5.5"
+            fill="#fb923c"
+            style={{ transformOrigin: "60px 28px", animation: "steamRise 2.4s ease-out infinite 1.4s" }}/>
+
+          {/* Кастрюля — корпус */}
+          <path d="M 18 42 L 78 42 L 74 76 Q 74 80 70 80 L 26 80 Q 22 80 22 76 Z"
+            fill="#1f2937" stroke="#475569" strokeWidth="2"/>
+          {/* Жидкость */}
+          <ellipse cx="48" cy="42" rx="30" ry="4" fill="#ea580c" opacity="0.65"/>
+
+          {/* Ручки */}
+          <rect x="12" y="46" width="8" height="4" rx="2" fill="#475569"/>
+          <rect x="76" y="46" width="8" height="4" rx="2" fill="#475569"/>
+
+          {/* Пузырьки внутри жидкости */}
+          <circle cx="36" cy="44" r="2.5" fill="#fb923c"
+            style={{ transformOrigin: "36px 44px", animation: "bubbleRise 1.6s ease-in-out infinite" }}/>
+          <circle cx="48" cy="46" r="2" fill="#fb923c"
+            style={{ transformOrigin: "48px 46px", animation: "bubbleRise 1.6s ease-in-out infinite 0.4s" }}/>
+          <circle cx="60" cy="44" r="2.3" fill="#fb923c"
+            style={{ transformOrigin: "60px 44px", animation: "bubbleRise 1.6s ease-in-out infinite 0.9s" }}/>
+
+          {/* Огонёк снизу */}
+          <path d="M 38 86 Q 40 82 44 84 Q 46 80 48 84 Q 50 80 52 84 Q 56 82 58 86 Q 56 90 48 90 Q 40 90 38 86 Z"
+            fill="#ea580c"
+            style={{ transformOrigin: "48px 88px", animation: "flameFlicker 0.6s ease-in-out infinite" }}/>
+          <path d="M 42 88 Q 44 85 46 87 Q 48 84 50 87 Q 52 85 54 88 Q 52 90 48 90 Q 44 90 42 88 Z"
+            fill="#fbbf24"
+            style={{ transformOrigin: "48px 88px", animation: "flameFlicker 0.4s ease-in-out infinite" }}/>
+        </svg>
+      </div>
+      <div style={{ fontSize: 15, color: "#94a3b8", lineHeight: 1.6 }}>{text}</div>
+    </div>
+  );
+}
+
+// ─── Иконки ───────────────────────────────────────────────────────────────────
 function PanLogo({ onClick }) {
   return (
     <div onClick={onClick} style={{
@@ -209,19 +312,39 @@ function ChatSVG() {
   );
 }
 
-// ─── FIX #5: helper для построения текста рецепта с чистой ссылкой ───────────
-function buildRecipeText(r, t) {
-  let txt = `${r.emoji} ${r.name}\n`;
-  txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
-  if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
-  txt += `\n\n🛒 ${t.ingredientsLabel}:\n${r.ingredients.join('\n')}`;
-  txt += `\n\n👨‍🍳 ${t.howto}:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
-  txt += `\n\n${APP_LINK}`;
-  return txt;
+// ─── PremiumBadge: бейдж «✨ PREMIUM» ────────────────────────────────────────
+function PremiumBadge({ label }) {
+  return (
+    <span style={{
+      fontSize: 9, fontWeight: 700,
+      background: "linear-gradient(135deg, #fbbf24, #ea580c)",
+      color: "#fff",
+      padding: "2px 7px",
+      borderRadius: 10,
+      marginLeft: 8,
+      letterSpacing: 0.4,
+      boxShadow: "0 0 8px rgba(251,191,36,0.25)",
+      verticalAlign: "middle",
+      whiteSpace: "nowrap",
+    }}>{label}</span>
+  );
 }
 
-// ─── Кнопка обратной связи ────────────────────────────────────────────────────
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function Toast({ message, visible }) {
+  if (!visible) return null;
+  return (
+    <div style={{
+      position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)",
+      background: "rgba(22,163,74,0.95)", color: "#fff",
+      padding: "10px 20px", borderRadius: 12,
+      fontSize: 13, fontWeight: 500, zIndex: 200,
+      boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+    }}>{message}</div>
+  );
+}
 
+// ─── FeedbackButton ───────────────────────────────────────────────────────────
 function FeedbackButton({ t }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -312,11 +435,20 @@ function FeedbackButton({ t }) {
   );
 }
 
-// ─── SmartField ───────────────────────────────────────────────────────────────
-
+// ─── SmartField: FIX #2 программный blur после подтверждения ─────────────────
 function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClear, showClearWhenTyping }) {
+  const inputRef = useRef(null);
   const hasText = value.trim().length > 0;
   const showClear = confirmed || (showClearWhenTyping && hasText && !confirmed);
+
+  const handleConfirm = () => {
+    if (hasText && !confirmed) {
+      onConfirm();
+      // Программно убираем фокус — клавиатура в Telegram уйдёт
+      inputRef.current?.blur();
+    }
+  };
+
   return (
     <div style={{
       width: "100%",
@@ -329,17 +461,18 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
     }}>
       {confirmed && <span style={{ color: "#fb923c", fontSize: 14, flexShrink: 0 }}>✓</span>}
       <input
-        style={{ flex: 1, background: "none", border: "none", outline: "none", fontSize: 15,
+        ref={inputRef}
+        style={{ flex: 1, background: "none", border: "none", outline: "none", fontSize: 16,
           color: (hasText || confirmed) ? "#f1f5f9" : "#64748b",
           fontWeight: confirmed ? 500 : 400, minWidth: 0 }}
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
-        onKeyDown={e => { if (e.key === "Enter" && hasText && !confirmed) onConfirm(); }}
+        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleConfirm(); } }}
         onBlur={() => { if (hasText && !confirmed) onConfirm(); }}
       />
       {showClear && onClear && (
-        <button onMouseDown={e => e.preventDefault()} onClick={onClear}
+        <button onMouseDown={e => e.preventDefault()} onClick={() => { onClear(); inputRef.current?.blur(); }}
           style={{ background: "none", border: "none", color: "#64748b",
             fontSize: 12, cursor: "pointer", flexShrink: 0, padding: "0 2px", whiteSpace: "nowrap" }}>
           очистить
@@ -350,7 +483,6 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
 }
 
 // ─── DualSlider ───────────────────────────────────────────────────────────────
-
 function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
   const trackRef = useRef(null);
   const dragging = useRef(null);
@@ -404,63 +536,43 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
   );
 }
 
-// ─── Share Sheet — FIX #5: чистая ссылка t.me/appetiteai_bot вместо window.location.href
-
-function ShareSheet({ recipe, t, onClose, onCopy, copied }) {
-  const text = buildRecipeText(recipe, t);
-  // FIX #5: используем чистую ссылку на бота, без хвоста tgWebAppData
-  const url = APP_LINK;
-  const shareTg = () => { window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank"); onClose(); };
-  const shareVk = () => { window.open(`https://vk.com/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(recipe.name)}&description=${encodeURIComponent(text)}`, "_blank"); onClose(); };
-  const shareNative = async () => { if (navigator.share) await navigator.share({ title: recipe.name, text, url }); onClose(); };
-
-  return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
-      display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 100, padding: "0 16px 24px" }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 480, background: "#181c23",
-        border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 20 }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: "#f1f5f9", marginBottom: 16 }}>{recipe.emoji} {recipe.name}</div>
-        <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-          <button onClick={shareTg} style={{ flex: 1, background: "rgba(0,136,204,0.15)", border: "1px solid rgba(0,136,204,0.35)",
-            borderRadius: 12, color: "#38bdf8", fontSize: 14, fontWeight: 600, padding: "12px 8px", cursor: "pointer",
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 22 }}>✈️</span>{t.shareTg}
-          </button>
-          <button onClick={shareVk} style={{ flex: 1, background: "rgba(65,105,225,0.15)", border: "1px solid rgba(65,105,225,0.35)",
-            borderRadius: 12, color: "#818cf8", fontSize: 14, fontWeight: 600, padding: "12px 8px", cursor: "pointer",
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 22 }}>💙</span>{t.shareVk}
-          </button>
-          <button onClick={() => { onCopy(); onClose(); }} style={{
-            flex: 1, background: copied ? "rgba(22,163,74,0.15)" : "rgba(255,255,255,0.06)",
-            border: copied ? "1px solid rgba(22,163,74,0.35)" : "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 12, color: copied ? "#4ade80" : "#94a3b8", fontSize: 14, fontWeight: 600,
-            padding: "12px 8px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 22 }}>{copied ? "✅" : "📋"}</span>{copied ? t.copiedMsg : t.shareCopy}
-          </button>
-        </div>
-        {navigator.share && (
-          <button onClick={shareNative} style={{ width: "100%", background: "rgba(234,88,12,0.12)",
-            border: "1px solid rgba(234,88,12,0.35)", borderRadius: 12, color: "#fb923c", fontSize: 14,
-            fontWeight: 600, padding: "12px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <ShareSVG color="#fb923c"/> {t.shareViaSystem}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ─── App ──────────────────────────────────────────────────────────────────────
-
 export default function App() {
   const [lang, setLang] = useState("ru");
+  const [toast, setToast] = useState(null);
+
+  // FIX #6,7: Стейт юзера и рефералов из localStorage
+  // В тестовой фазе isPremium=true для всех — все фичи работают
+  const [user] = useState(() => ({ isPremium: true }));
+
+  // Реферальная статистика — заглушка из localStorage
+  const [referrals, setReferrals] = useState(() => {
+    try {
+      const saved = localStorage.getItem("referrals");
+      if (saved) return JSON.parse(saved);
+    } catch { /* */ }
+    return { invitedCount: 0, bonusDays: 0 };
+  });
+
+  // Telegram User ID для генерации реферальной ссылки
+  const [tgUserId, setTgUserId] = useState(null);
 
   useEffect(() => {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.expand();
       window.Telegram.WebApp.disableVerticalSwipes?.();
+
+      // FIX #7: Парсим start_param при запуске — кто пригласил
+      const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
+      if (startParam?.startsWith("ref_")) {
+        const referrerId = startParam.replace("ref_", "");
+        // Сохраняем чтобы потом передать на бэк (когда подключим)
+        try { localStorage.setItem("referrer", referrerId); } catch { /* */ }
+      }
+
+      // Запоминаем свой ID для построения реферальной ссылки
+      const myId = window.Telegram.WebApp.initDataUnsafe?.user?.id;
+      if (myId) setTgUserId(String(myId));
     }
   }, []);
 
@@ -489,18 +601,17 @@ export default function App() {
   const [noResults, setNoResults] = useState(false);
   const [openSet, setOpenSet] = useState(new Set());
   const [copiedIdx, setCopiedIdx] = useState(null);
-  const [shareRecipe, setShareRecipe] = useState(null);
-  const [shareCopied, setShareCopied] = useState(false);
 
-  // FIX #8: запоминаем диеты, под которые сгенерированы текущие рецепты
-  // Это нужно чтобы бейджи на экране результата показывали те диеты,
-  // что были на момент генерации, а не текущие выбранные на главной
+  // Запоминаем диеты под которые сгенерили — для бейджей в результате
   const [resultsDiets, setResultsDiets] = useState([]);
 
-  // FIX #8: показывает находимся ли мы на экране рецептов или на главной
-  // null = главная (если есть recipes — кнопка «К моим рецептам» сверху)
-  // 'results' = экран рецептов (видим список)
+  // view: null = главная, 'results' = экран рецептов
   const [view, setView] = useState(null);
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2000);
+  };
 
   const confirmDish = () => { if (dish.trim()) setDishConfirmed(true); };
   const clearDish = () => { setDish(""); setDishConfirmed(false); };
@@ -529,7 +640,6 @@ export default function App() {
 
   const handleLangSwitch = () => {
     setLang(l => l === "ru" ? "en" : "ru");
-    // При смене языка сбрасываем рецепты — они на старом языке
     setRecipes(null); setNoResults(false); setApiError(false); setOpenSet(new Set()); setWarning(null);
     setResultsDiets([]); setView(null);
   };
@@ -555,9 +665,7 @@ export default function App() {
     if (!hasDish && !hasIngredients && !hasDiet) return;
     setApiError(false); setNoResults(false); setWarning(null);
     setLoading(true); setRecipes(null); setOpenSet(new Set());
-    // FIX #8: сразу переключаем view на экран результата (показывает лоадер)
     setView('results');
-    // FIX #8/9: запоминаем диеты под которые генерим — для бейджей в результате
     setResultsDiets([...activeDiets]);
     try {
       const res = await fetch(WORKER_URL, {
@@ -594,12 +702,20 @@ export default function App() {
     setLoadingMore(false);
   }, [recipes, buildBody]);
 
-  const handleShareOpen = r => { setShareCopied(false); setShareRecipe(r); };
-
-  // FIX #5: используем универсальный builder с чистой ссылкой и локализацией
-  const handleShareCopy = r => {
-    navigator.clipboard.writeText(buildRecipeText(r, t));
-    setShareCopied(true);
+  // FIX #3: Шер только системный — без кастомного ShareSheet
+  const handleShare = async (r) => {
+    const text = buildRecipeText(r, t);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: r.name, text, url: APP_LINK });
+      } catch { /* юзер отменил — silent */ }
+    } else {
+      // Fallback для браузеров без navigator.share — копируем в буфер
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(t.copiedMsg);
+      } catch { /* */ }
+    }
   };
 
   const handleShopList = (r, idx) => {
@@ -610,8 +726,22 @@ export default function App() {
     setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
   };
 
-  // FIX #8: «← К фильтрам» — возврат на главную БЕЗ сброса рецептов
-  // Сбрасываем только статусы экранов ошибок/пустого результата
+  // Реферальный шер
+  const handleRefShare = async () => {
+    const refLink = tgUserId ? `${APP_LINK}?start=ref_${tgUserId}` : APP_LINK;
+    const text = `${t.refShareText}\n\n${refLink}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: t.title, text, url: refLink });
+      } catch { /* */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(t.copiedMsg);
+      } catch { /* */ }
+    }
+  };
+
   const backToFilters = () => {
     setView(null);
     setApiError(false);
@@ -619,13 +749,11 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // FIX #8: «← К моим рецептам» — возврат к сохранённым результатам с главной
   const backToRecipes = () => {
     setView('results');
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Полный сброс — клик по логотипу или смена языка
   const resetAll = () => {
     setRecipes(null); setNoResults(false); setApiError(false);
     setOpenSet(new Set()); setWarning(null); setResultsDiets([]); setView(null);
@@ -633,10 +761,12 @@ export default function App() {
   };
 
   const canGenerate = (dishConfirmed && dish.trim()) || selected.size > 0 || activeDiets.size > 0;
-  // FIX #8: экран результата показываем, если view='results' ИЛИ если идёт ошибка/пустой результат
   const isResultScreen = view === 'results' && (recipes || noResults || apiError || loading);
-  // FIX #8: на главной показываем кнопку «К моим рецептам», если есть сохранённые рецепты
   const hasStoredRecipes = view === null && recipes && recipes.length > 0;
+
+  // Прогресс рефералов до месяца Premium (5 друзей)
+  const refTarget = 5;
+  const refProgress = Math.min(100, Math.round((referrals.invitedCount / refTarget) * 100));
 
   const sLabel = { fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 8 };
   const sDiv = { height: 1, background: "rgba(255,255,255,0.05)", margin: "12px 0" };
@@ -654,12 +784,7 @@ export default function App() {
       padding: 0, margin: 0, boxSizing: "border-box",
       fontFamily: "system-ui,-apple-system,sans-serif" }}>
 
-      {shareRecipe && (
-        <ShareSheet recipe={shareRecipe} t={t}
-          onClose={() => setShareRecipe(null)}
-          onCopy={() => handleShareCopy(shareRecipe)}
-          copied={shareCopied}/>
-      )}
+      <Toast message={toast} visible={!!toast}/>
 
       <div style={{
         width: "100%", maxWidth: 480, minHeight: "100vh",
@@ -673,7 +798,6 @@ export default function App() {
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* FIX #8: клик по логотипу — полный сброс */}
             <PanLogo onClick={(isResultScreen || hasStoredRecipes) ? resetAll : undefined}/>
             <div>
               <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", lineHeight: 1.1 }}>{t.title}</div>
@@ -701,7 +825,7 @@ export default function App() {
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1,
               textTransform: "uppercase", marginBottom: 14 }}>{t.results}</div>
 
-            {/* FIX #9: бейджи выбранных диет под заголовком экрана результата */}
+            {/* Бейджи диет на экране результата */}
             {resultsDiets.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, marginTop: -6 }}>
                 {resultsDiets.map(d => (
@@ -726,12 +850,8 @@ export default function App() {
               </div>
             )}
 
-            {loading && (
-              <div style={{ textAlign: "center", padding: "32px 12px" }}>
-                <div style={{ fontSize: 40, marginBottom: 14 }}>👨‍🍳</div>
-                <div style={{ fontSize: 15, color: "#94a3b8", lineHeight: 1.6 }}>{t.loading}</div>
-              </div>
-            )}
+            {/* FIX #4: Анимированный лоадер вместо статичного эмодзи */}
+            {loading && <CookingLoader text={t.loading}/>}
 
             {noResults && !loading && (
               <div style={{ textAlign: "center", padding: "32px 12px" }}>
@@ -781,6 +901,39 @@ export default function App() {
                           borderRadius: 8, color: "#6ee7b7", fontSize: 13, padding: "4px 10px" }}>{ing}</span>
                       ))}
                     </div>
+
+                    {/* FIX #5: БЖУ-пилюли — показываются только если бэк прислал данные */}
+                    {(r.protein != null && r.fat != null && r.carbs != null) && (
+                      <>
+                        <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                          {t.macrosLabel}
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                          {/* Белки — зелёный */}
+                          <span style={{
+                            background: "rgba(16,185,129,0.1)",
+                            border: "1px solid rgba(16,185,129,0.25)",
+                            borderRadius: 8, color: "#6ee7b7",
+                            fontSize: 13, padding: "4px 10px",
+                          }}>🥩 {t.protein} {r.protein}г</span>
+                          {/* Жиры — оранжевый */}
+                          <span style={{
+                            background: "rgba(234,88,12,0.12)",
+                            border: "1px solid rgba(234,88,12,0.3)",
+                            borderRadius: 8, color: "#fb923c",
+                            fontSize: 13, padding: "4px 10px",
+                          }}>🥑 {t.fat} {r.fat}г</span>
+                          {/* Углеводы — синий */}
+                          <span style={{
+                            background: "rgba(59,130,246,0.1)",
+                            border: "1px solid rgba(59,130,246,0.3)",
+                            borderRadius: 8, color: "#93c5fd",
+                            fontSize: 13, padding: "4px 10px",
+                          }}>🌾 {t.carbs} {r.carbs}г</span>
+                        </div>
+                      </>
+                    )}
+
                     <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>{t.howto}</div>
                     {r.steps.map((step, j) => (
                       <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
@@ -793,7 +946,8 @@ export default function App() {
                       </div>
                     ))}
                     <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                      <button onClick={() => handleShareOpen(r)}
+                      {/* FIX #3: Кнопка «Поделиться» вызывает сразу navigator.share без кастомного шера */}
+                      <button onClick={() => handleShare(r)}
                         style={{ flex: 1, background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.4)",
                           borderRadius: 10, color: "#fb923c", fontSize: 13, fontWeight: 600, padding: "10px",
                           cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
@@ -821,7 +975,6 @@ export default function App() {
               </button>
             )}
 
-            {/* FIX #8: «← К фильтрам» — возврат на главную с сохранением рецептов */}
             {!loading && (recipes || noResults || apiError) && (
               <button onClick={backToFilters}
                 style={{ width: "100%", background: "none", border: "1px solid rgba(255,255,255,0.08)",
@@ -835,17 +988,6 @@ export default function App() {
 
         ) : (
           <>
-            {/* FIX #8: кнопка «← К моим рецептам» — видна только если есть сохранённые рецепты */}
-            {hasStoredRecipes && (
-              <button onClick={backToRecipes}
-                style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
-                  borderRadius: 50, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "11px 16px",
-                  cursor: "pointer", marginBottom: 14,
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                {t.toMyRecipes}
-              </button>
-            )}
-
             <SmartField placeholder={t.dishPlaceholder} value={dish}
               onChange={handleDishChange} onConfirm={confirmDish}
               confirmed={dishConfirmed} onClear={clearDish} showClearWhenTyping={true}/>
@@ -931,9 +1073,13 @@ export default function App() {
 
             {filtersOpen && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+                {/* FIX #6: Калории — секция с бейджем PREMIUM */}
                 <div style={sFilterBlock}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, color: "#64748b" }}>{t.calories}</span>
+                    <span style={{ fontSize: 13, color: "#64748b" }}>
+                      {t.calories}
+                      <PremiumBadge label={t.premiumBadge}/>
+                    </span>
                     <span style={{ fontSize: 14, fontWeight: 600, color: "#fb923c" }}>
                       {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
                     </span>
@@ -969,9 +1115,13 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* FIX #6: Диета — секция с бейджем PREMIUM (один раз на блок) */}
                 <div style={sFilterBlock}>
                   <div style={{ marginBottom: 10 }}>
-                    <span style={{ fontSize: 13, color: "#64748b" }}>{t.diet}</span>
+                    <span style={{ fontSize: 13, color: "#64748b" }}>
+                      {t.diet}
+                      <PremiumBadge label={t.premiumBadge}/>
+                    </span>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {t.dietItems.map(d => (
@@ -989,6 +1139,76 @@ export default function App() {
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxSizing: "border-box" }}>
               {loading ? t.loading : t.btn}
             </button>
+
+            {/* FIX #1: «К моим рецептам →» — внизу ПОД главной кнопкой, стрелка вправо */}
+            {hasStoredRecipes && (
+              <button onClick={backToRecipes}
+                style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
+                  borderRadius: 50, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "11px 16px",
+                  cursor: "pointer", marginTop: 10,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                {t.toMyRecipes}
+              </button>
+            )}
+
+            {/* FIX #7: Реферальная система — секция «Пригласи друга» */}
+            <div style={{
+              marginTop: 28,
+              background: "linear-gradient(135deg, rgba(234,88,12,0.08), rgba(251,191,36,0.05))",
+              border: "1px solid rgba(234,88,12,0.3)",
+              borderRadius: 14, padding: "16px 18px",
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9", marginBottom: 6 }}>
+                {t.refTitle}
+              </div>
+              <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 14, lineHeight: 1.5 }}>
+                {t.refDesc}
+              </div>
+
+              {/* Прогресс-бар */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, color: "#64748b" }}>
+                    {t.refStatsLabel}: <strong style={{ color: "#fb923c" }}>{referrals.invitedCount} / {refTarget}</strong> {t.refToNextLabel}
+                  </span>
+                  <span style={{ fontSize: 11, color: "#fb923c", fontWeight: 600 }}>{refProgress}%</span>
+                </div>
+                <div style={{
+                  height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden",
+                }}>
+                  <div style={{
+                    width: `${refProgress}%`,
+                    height: "100%",
+                    background: "linear-gradient(90deg, #ea580c, #fbbf24)",
+                    borderRadius: 3,
+                    transition: "width 0.4s ease",
+                  }}/>
+                </div>
+              </div>
+
+              <button onClick={handleRefShare} style={{
+                width: "100%", background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.45)",
+                borderRadius: 50, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "10px 16px",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              }}>
+                {t.refShareBtn}
+              </button>
+            </div>
+
+            {/* FIX #6: Плашка Premium внизу над обратной связью */}
+            <div style={{
+              marginTop: 14,
+              background: "rgba(251,191,36,0.06)",
+              border: "1px solid rgba(251,191,36,0.25)",
+              borderRadius: 12, padding: "12px 14px",
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#fbbf24", marginBottom: 4 }}>
+                {t.premiumBannerTitle}
+              </div>
+              <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.5 }}>
+                {t.premiumBannerDesc}
+              </div>
+            </div>
 
             <FeedbackButton t={t}/>
           </>
