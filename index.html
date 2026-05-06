@@ -3,9 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- FIX: запрет зума в Mini App. maximum-scale=1 + user-scalable=no блокируют pinch-zoom -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Appetite AI — Что приготовить?</title>
     <meta name="description" content="Введи блюдо или выбери продукты — получи рецепт за секунды. AI-повар в Telegram." />
+    <!-- FIX: CSS-страховка от двойного тапа и автозума в input -->
+    <style>
+      html, body {
+        touch-action: pan-x pan-y;
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        overscroll-behavior: none;
+      }
+      input, textarea, select {
+        font-size: 16px;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
