@@ -6,6 +6,10 @@ const FEEDBACK_URL = "https://recipe-backend-production-416c.up.railway.app/api/
 // Единая чистая ссылка на Mini App без хвоста tgWebAppData
 const APP_LINK = "https://t.me/appetiteai_bot";
 
+// FIX #2: лимит избранного и ключ localStorage
+const FAVORITES_KEY = "favorites";
+const FAVORITES_LIMIT = 100;
+
 // ─── DATA / Локализация ──────────────────────────────────────────────────────
 const DATA = {
   ru: {
@@ -38,8 +42,8 @@ const DATA = {
     },
     addProductPlaceholder: "Добавить продукт...",
     btn: "🔍 Что приготовить?",
-    loading: "Придумываю рецепты...",
-    loadingMore: "Ищу ещё...",
+    loading: "Придумываю рецепты",
+    loadingMore: "Ищу ещё",
     clearAll: "очистить всё",
     selected: "выбрано",
     results: "Варианты блюд",
@@ -85,7 +89,6 @@ const DATA = {
     feedbackSend: "Отправить",
     feedbackSent: "✓ Отправлено!",
     feedbackCancel: "Отмена",
-    // Premium / Referral
     premiumBadge: "✨ PREMIUM",
     premiumBannerTitle: "🎁 Premium открыт для всех — тестовая фаза",
     premiumBannerDesc: "Калории, все диеты, избранное — попробуй прямо сейчас!",
@@ -93,10 +96,16 @@ const DATA = {
     refDesc: "1 друг = 7 дней Premium • 5 друзей = месяц • 10 = 3 месяца",
     refShareBtn: "📤 Поделиться ссылкой",
     refStatsLabel: "Приглашено",
-    refBonusLabel: "Бонус",
-    refDays: "дней",
     refToNextLabel: "до месяца Premium",
     refShareText: "🍳 Готовлю с Appetite AI — AI-помощник по рецептам в Telegram!\n\nТебе неделя Premium бесплатно при первом запуске 👇",
+    // FIX #2: избранное
+    favoritesTitle: "Избранное",
+    favoritesEmpty: "У тебя пока нет избранных рецептов",
+    favoritesEmptyDesc: "Сохрани понравившийся — звёздочка ⭐ в правом верхнем углу карточки",
+    favoritesBackBtn: "← Назад",
+    favoritesLimitMsg: "Достигнут лимит 100 рецептов. Удали старые из Избранного",
+    addedToFavorites: "Добавлено в избранное ⭐",
+    removedFromFavorites: "Удалено из избранного",
   },
   en: {
     title: "Appetite AI",
@@ -128,8 +137,8 @@ const DATA = {
     },
     addProductPlaceholder: "Add ingredient...",
     btn: "🔍 What can I cook?",
-    loading: "Finding recipes...",
-    loadingMore: "Finding more...",
+    loading: "Finding recipes",
+    loadingMore: "Finding more",
     clearAll: "clear all",
     selected: "selected",
     results: "Recipe ideas",
@@ -182,10 +191,15 @@ const DATA = {
     refDesc: "1 friend = 7 days Premium • 5 friends = month • 10 = 3 months",
     refShareBtn: "📤 Share link",
     refStatsLabel: "Invited",
-    refBonusLabel: "Bonus",
-    refDays: "days",
     refToNextLabel: "to month of Premium",
     refShareText: "🍳 Cooking with Appetite AI — your AI recipe assistant in Telegram!\n\nFree week of Premium for you on first launch 👇",
+    favoritesTitle: "Favorites",
+    favoritesEmpty: "You don't have any saved recipes yet",
+    favoritesEmptyDesc: "Save what you like — star ⭐ in the top right corner of the card",
+    favoritesBackBtn: "← Back",
+    favoritesLimitMsg: "Limit of 100 recipes reached. Remove old ones from Favorites",
+    addedToFavorites: "Added to favorites ⭐",
+    removedFromFavorites: "Removed from favorites",
   },
 };
 
@@ -195,7 +209,6 @@ function buildRecipeText(r, t) {
   txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
   if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
   txt += `\n\n🛒 ${t.ingredientsLabel}:\n${r.ingredients.join('\n')}`;
-  // БЖУ если есть
   if (r.protein != null && r.fat != null && r.carbs != null) {
     txt += `\n\n${t.macrosLabel}: ${t.protein} ${r.protein}г • ${t.fat} ${r.fat}г • ${t.carbs} ${r.carbs}г`;
   }
@@ -204,8 +217,14 @@ function buildRecipeText(r, t) {
   return txt;
 }
 
-// ─── CookingLoader: анимированный лоадер «кипящая кастрюля» ───────────────────
-// Чистый SVG + CSS keyframes, никаких сторонних библиотек, работает везде
+// FIX #2: уникальный ID рецепта (для определения «в избранном или нет»)
+function recipeId(r) {
+  if (!r) return "";
+  const ing = (r.ingredients || []).slice(0, 3).join("|");
+  return `${r.name}::${ing}`;
+}
+
+// ─── CookingLoader: FIX #5 анимированные точки в тексте ──────────────────────
 function CookingLoader({ text }) {
   return (
     <div style={{ textAlign: "center", padding: "32px 12px" }}>
@@ -225,10 +244,13 @@ function CookingLoader({ text }) {
           0%, 100% { transform: scaleY(1) scaleX(1); opacity: 0.95; }
           50%      { transform: scaleY(0.78) scaleX(1.1); opacity: 0.7; }
         }
+        @keyframes dotPulse {
+          0%, 60%, 100% { opacity: 0.15; }
+          30%           { opacity: 1; }
+        }
       `}</style>
       <div style={{ position: "relative", width: 96, height: 96, margin: "0 auto 18px" }}>
         <svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">
-          {/* Пар */}
           <ellipse cx="38" cy="22" rx="3.5" ry="6"
             fill="#fb923c"
             style={{ transformOrigin: "38px 28px", animation: "steamRise 2.4s ease-out infinite" }}/>
@@ -239,17 +261,13 @@ function CookingLoader({ text }) {
             fill="#fb923c"
             style={{ transformOrigin: "60px 28px", animation: "steamRise 2.4s ease-out infinite 1.4s" }}/>
 
-          {/* Кастрюля — корпус */}
           <path d="M 18 42 L 78 42 L 74 76 Q 74 80 70 80 L 26 80 Q 22 80 22 76 Z"
             fill="#1f2937" stroke="#475569" strokeWidth="2"/>
-          {/* Жидкость */}
           <ellipse cx="48" cy="42" rx="30" ry="4" fill="#ea580c" opacity="0.65"/>
 
-          {/* Ручки */}
           <rect x="12" y="46" width="8" height="4" rx="2" fill="#475569"/>
           <rect x="76" y="46" width="8" height="4" rx="2" fill="#475569"/>
 
-          {/* Пузырьки внутри жидкости */}
           <circle cx="36" cy="44" r="2.5" fill="#fb923c"
             style={{ transformOrigin: "36px 44px", animation: "bubbleRise 1.6s ease-in-out infinite" }}/>
           <circle cx="48" cy="46" r="2" fill="#fb923c"
@@ -257,7 +275,6 @@ function CookingLoader({ text }) {
           <circle cx="60" cy="44" r="2.3" fill="#fb923c"
             style={{ transformOrigin: "60px 44px", animation: "bubbleRise 1.6s ease-in-out infinite 0.9s" }}/>
 
-          {/* Огонёк снизу */}
           <path d="M 38 86 Q 40 82 44 84 Q 46 80 48 84 Q 50 80 52 84 Q 56 82 58 86 Q 56 90 48 90 Q 40 90 38 86 Z"
             fill="#ea580c"
             style={{ transformOrigin: "48px 88px", animation: "flameFlicker 0.6s ease-in-out infinite" }}/>
@@ -266,7 +283,15 @@ function CookingLoader({ text }) {
             style={{ transformOrigin: "48px 88px", animation: "flameFlicker 0.4s ease-in-out infinite" }}/>
         </svg>
       </div>
-      <div style={{ fontSize: 15, color: "#94a3b8", lineHeight: 1.6 }}>{text}</div>
+      {/* FIX #5: текст + три анимированных точки бегущей волной */}
+      <div style={{ fontSize: 15, color: "#94a3b8", lineHeight: 1.6 }}>
+        {text}
+        <span style={{ display: "inline-block", marginLeft: 2 }}>
+          <span style={{ animation: "dotPulse 1.4s infinite" }}>.</span>
+          <span style={{ animation: "dotPulse 1.4s infinite 0.2s" }}>.</span>
+          <span style={{ animation: "dotPulse 1.4s infinite 0.4s" }}>.</span>
+        </span>
+      </div>
     </div>
   );
 }
@@ -312,8 +337,24 @@ function ChatSVG() {
   );
 }
 
-// ─── PremiumBadge: бейдж «✨ PREMIUM» ────────────────────────────────────────
-function PremiumBadge({ label }) {
+// FIX #2: иконка звёздочки (заполненная или контурная)
+function StarIcon({ filled, size = 20 }) {
+  if (filled) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" strokeWidth="1.5" strokeLinejoin="round">
+        <polygon points="12,2 15,9 22,9.5 17,14.5 18.5,21.5 12,18 5.5,21.5 7,14.5 2,9.5 9,9"/>
+      </svg>
+    );
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.8" strokeLinejoin="round">
+      <polygon points="12,2 15,9 22,9.5 17,14.5 18.5,21.5 12,18 5.5,21.5 7,14.5 2,9.5 9,9"/>
+    </svg>
+  );
+}
+
+// ─── PremiumBadge: FIX #1 — компактный бейдж, можно ставить слева ───────────
+function PremiumBadge({ label, marginLeft = 0, marginRight = 0 }) {
   return (
     <span style={{
       fontSize: 9, fontWeight: 700,
@@ -321,11 +362,12 @@ function PremiumBadge({ label }) {
       color: "#fff",
       padding: "2px 7px",
       borderRadius: 10,
-      marginLeft: 8,
+      marginLeft, marginRight,
       letterSpacing: 0.4,
       boxShadow: "0 0 8px rgba(251,191,36,0.25)",
       verticalAlign: "middle",
       whiteSpace: "nowrap",
+      display: "inline-block",
     }}>{label}</span>
   );
 }
@@ -340,6 +382,7 @@ function Toast({ message, visible }) {
       padding: "10px 20px", borderRadius: 12,
       fontSize: 13, fontWeight: 500, zIndex: 200,
       boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+      maxWidth: "calc(100% - 32px)", textAlign: "center",
     }}>{message}</div>
   );
 }
@@ -435,7 +478,7 @@ function FeedbackButton({ t }) {
   );
 }
 
-// ─── SmartField: FIX #2 программный blur после подтверждения ─────────────────
+// ─── SmartField ───────────────────────────────────────────────────────────────
 function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClear, showClearWhenTyping }) {
   const inputRef = useRef(null);
   const hasText = value.trim().length > 0;
@@ -444,7 +487,6 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
   const handleConfirm = () => {
     if (hasText && !confirmed) {
       onConfirm();
-      // Программно убираем фокус — клавиатура в Telegram уйдёт
       inputRef.current?.blur();
     }
   };
@@ -541,12 +583,9 @@ export default function App() {
   const [lang, setLang] = useState("ru");
   const [toast, setToast] = useState(null);
 
-  // FIX #6,7: Стейт юзера и рефералов из localStorage
-  // В тестовой фазе isPremium=true для всех — все фичи работают
   const [user] = useState(() => ({ isPremium: true }));
 
-  // Реферальная статистика — заглушка из localStorage
-  const [referrals, setReferrals] = useState(() => {
+  const [referrals] = useState(() => {
     try {
       const saved = localStorage.getItem("referrals");
       if (saved) return JSON.parse(saved);
@@ -554,7 +593,18 @@ export default function App() {
     return { invitedCount: 0, bonusDays: 0 };
   });
 
-  // Telegram User ID для генерации реферальной ссылки
+  // FIX #2: избранное — массив объектов рецептов из localStorage
+  const [favorites, setFavorites] = useState(() => {
+    try {
+      const saved = localStorage.getItem(FAVORITES_KEY);
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) return arr;
+      }
+    } catch { /* */ }
+    return [];
+  });
+
   const [tgUserId, setTgUserId] = useState(null);
 
   useEffect(() => {
@@ -562,19 +612,23 @@ export default function App() {
       window.Telegram.WebApp.expand();
       window.Telegram.WebApp.disableVerticalSwipes?.();
 
-      // FIX #7: Парсим start_param при запуске — кто пригласил
       const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
       if (startParam?.startsWith("ref_")) {
         const referrerId = startParam.replace("ref_", "");
-        // Сохраняем чтобы потом передать на бэк (когда подключим)
         try { localStorage.setItem("referrer", referrerId); } catch { /* */ }
       }
 
-      // Запоминаем свой ID для построения реферальной ссылки
       const myId = window.Telegram.WebApp.initDataUnsafe?.user?.id;
       if (myId) setTgUserId(String(myId));
     }
   }, []);
+
+  // FIX #2: сохранение избранного в localStorage при каждом изменении
+  useEffect(() => {
+    try {
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+    } catch { /* localStorage может быть недоступен */ }
+  }, [favorites]);
 
   const t = DATA[lang];
 
@@ -600,17 +654,43 @@ export default function App() {
   const [apiError, setApiError] = useState(false);
   const [noResults, setNoResults] = useState(false);
   const [openSet, setOpenSet] = useState(new Set());
+  const [favOpenSet, setFavOpenSet] = useState(new Set()); // отдельный стейт для раскрытия в избранном
   const [copiedIdx, setCopiedIdx] = useState(null);
 
-  // Запоминаем диеты под которые сгенерили — для бейджей в результате
   const [resultsDiets, setResultsDiets] = useState([]);
 
-  // view: null = главная, 'results' = экран рецептов
+  // FIX #2: добавили новый view 'favorites'
+  // null = главная, 'results' = экран рецептов, 'favorites' = избранное
   const [view, setView] = useState(null);
 
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2000);
+  };
+
+  // FIX #2: добавить/удалить рецепт из избранного
+  const isFavorite = useCallback((r) => {
+    const id = recipeId(r);
+    return favorites.some(f => recipeId(f) === id);
+  }, [favorites]);
+
+  const toggleFavorite = (r, e) => {
+    if (e) e.stopPropagation(); // не раскрываем карточку при тапе на звезду
+    const id = recipeId(r);
+    setFavorites(prev => {
+      const exists = prev.some(f => recipeId(f) === id);
+      if (exists) {
+        showToast(t.removedFromFavorites);
+        return prev.filter(f => recipeId(f) !== id);
+      } else {
+        if (prev.length >= FAVORITES_LIMIT) {
+          showToast(t.favoritesLimitMsg);
+          return prev;
+        }
+        showToast(t.addedToFavorites);
+        return [...prev, r];
+      }
+    });
   };
 
   const confirmDish = () => { if (dish.trim()) setDishConfirmed(true); };
@@ -632,6 +712,14 @@ export default function App() {
 
   const handleToggleRecipe = (i) => {
     setOpenSet(prev => {
+      const n = new Set(prev);
+      n.has(i) ? n.delete(i) : n.add(i);
+      return n;
+    });
+  };
+
+  const handleToggleFavRecipe = (i) => {
+    setFavOpenSet(prev => {
       const n = new Set(prev);
       n.has(i) ? n.delete(i) : n.add(i);
       return n;
@@ -702,15 +790,14 @@ export default function App() {
     setLoadingMore(false);
   }, [recipes, buildBody]);
 
-  // FIX #3: Шер только системный — без кастомного ShareSheet
+  // FIX #4: Шер без url — только title + text (ссылка зашита внутри text)
   const handleShare = async (r) => {
     const text = buildRecipeText(r, t);
     if (navigator.share) {
       try {
-        await navigator.share({ title: r.name, text, url: APP_LINK });
+        await navigator.share({ title: r.name, text });
       } catch { /* юзер отменил — silent */ }
     } else {
-      // Fallback для браузеров без navigator.share — копируем в буфер
       try {
         await navigator.clipboard.writeText(text);
         showToast(t.copiedMsg);
@@ -718,21 +805,20 @@ export default function App() {
     }
   };
 
+  // FIX #3: Список покупок — только ингредиенты, без шагов рецепта
   const handleShopList = (r, idx) => {
     let txt = `🛒 ${r.name}\n\n`;
     txt += `${t.ingredientsLabel}:\n${r.ingredients.join('\n')}`;
-    txt += `\n\n${t.howto}:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
     navigator.clipboard.writeText(txt);
     setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
   };
 
-  // Реферальный шер
   const handleRefShare = async () => {
     const refLink = tgUserId ? `${APP_LINK}?start=ref_${tgUserId}` : APP_LINK;
     const text = `${t.refShareText}\n\n${refLink}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: t.title, text, url: refLink });
+        await navigator.share({ title: t.title, text });
       } catch { /* */ }
     } else {
       try {
@@ -754,6 +840,18 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // FIX #2: переход в избранное и обратно
+  const goToFavorites = () => {
+    setFavOpenSet(new Set());
+    setView('favorites');
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const backFromFavorites = () => {
+    setView(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const resetAll = () => {
     setRecipes(null); setNoResults(false); setApiError(false);
     setOpenSet(new Set()); setWarning(null); setResultsDiets([]); setView(null);
@@ -762,9 +860,9 @@ export default function App() {
 
   const canGenerate = (dishConfirmed && dish.trim()) || selected.size > 0 || activeDiets.size > 0;
   const isResultScreen = view === 'results' && (recipes || noResults || apiError || loading);
+  const isFavoritesScreen = view === 'favorites';
   const hasStoredRecipes = view === null && recipes && recipes.length > 0;
 
-  // Прогресс рефералов до месяца Premium (5 друзей)
   const refTarget = 5;
   const refProgress = Math.min(100, Math.round((referrals.invitedCount / refTarget) * 100));
 
@@ -777,6 +875,107 @@ export default function App() {
     borderRadius: 8, color: active ? "#fb923c" : "#64748b",
     fontSize: 14, padding: "6px 12px", cursor: "pointer",
   });
+
+  // FIX #2: универсальный рендерер карточки рецепта (используется и в результатах, и в избранном)
+  const renderRecipeCard = (r, i, openState, toggleHandler) => {
+    const isOpen = openState.has(i);
+    const fav = isFavorite(r);
+    return (
+      <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
+        <div onClick={() => toggleHandler(i)}
+          style={{ display: "flex", alignItems: "center", gap: 12, padding: "15px 16px", cursor: "pointer" }}>
+          <span style={{ fontSize: 30, flexShrink: 0 }}>{r.emoji}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "#f1f5f9", marginBottom: 6, textAlign: "left" }}>{r.name}</div>
+            <div style={{ fontSize: 13, color: "#64748b", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              ⏱ {r.time}
+              <span style={{ color: "#4ade80", marginLeft: 8 }}>● {t.diff[r.difficulty] || r.difficulty}</span>
+              {r.calories && <span style={{ color: "#fb923c", marginLeft: 8 }}>● ~{r.calories} {t.kcalPer}</span>}
+            </div>
+          </div>
+          {/* FIX #2: звёздочка избранного — справа от стрелки */}
+          <button
+            onClick={(e) => toggleFavorite(r, e)}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              background: "none", border: "none", padding: 4, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}
+            aria-label={fav ? "Remove from favorites" : "Add to favorites"}
+          >
+            <StarIcon filled={fav} size={20}/>
+          </button>
+          <span style={{ color: "#64748b", fontSize: 12, flexShrink: 0, marginLeft: 4 }}>{isOpen ? "▲" : "▼"}</span>
+        </div>
+        {isOpen && (
+          <div style={{ padding: "14px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+              {r.ingredients.map((ing, j) => (
+                <span key={j} style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)",
+                  borderRadius: 8, color: "#6ee7b7", fontSize: 13, padding: "4px 10px" }}>{ing}</span>
+              ))}
+            </div>
+
+            {(r.protein != null && r.fat != null && r.carbs != null) && (
+              <>
+                <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                  {t.macrosLabel}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                  <span style={{
+                    background: "rgba(16,185,129,0.1)",
+                    border: "1px solid rgba(16,185,129,0.25)",
+                    borderRadius: 8, color: "#6ee7b7",
+                    fontSize: 13, padding: "4px 10px",
+                  }}>🥩 {t.protein} {r.protein}г</span>
+                  <span style={{
+                    background: "rgba(234,88,12,0.12)",
+                    border: "1px solid rgba(234,88,12,0.3)",
+                    borderRadius: 8, color: "#fb923c",
+                    fontSize: 13, padding: "4px 10px",
+                  }}>🥑 {t.fat} {r.fat}г</span>
+                  <span style={{
+                    background: "rgba(59,130,246,0.1)",
+                    border: "1px solid rgba(59,130,246,0.3)",
+                    borderRadius: 8, color: "#93c5fd",
+                    fontSize: 13, padding: "4px 10px",
+                  }}>🌾 {t.carbs} {r.carbs}г</span>
+                </div>
+              </>
+            )}
+
+            <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>{t.howto}</div>
+            {r.steps.map((step, j) => (
+              <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
+                <span style={{ background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.3)",
+                  borderRadius: "50%", color: "#fb923c", fontSize: 12, fontWeight: 700,
+                  minWidth: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {j + 1}
+                </span>
+                <span style={{ fontSize: 14, color: "#94a3b8", lineHeight: 1.5, textAlign: "left" }}>{step}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <button onClick={() => handleShare(r)}
+                style={{ flex: 1, background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.4)",
+                  borderRadius: 10, color: "#fb923c", fontSize: 13, fontWeight: 600, padding: "10px",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <ShareSVG color="#fb923c"/> {t.share}
+              </button>
+              <button onClick={() => handleShopList(r, i)}
+                style={{ flex: 1, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)",
+                  borderRadius: 10, color: "#6ee7b7", fontSize: 13, padding: "10px",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                {copiedIdx === i ? "✓ " + t.copiedMsg : t.shopList}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div style={{ minHeight: "100vh", width: "100%", background: "#0d0f14",
@@ -797,15 +996,25 @@ export default function App() {
 
         {/* ── Header ────────────────────────────────────────────────────── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <PanLogo onClick={(isResultScreen || hasStoredRecipes) ? resetAll : undefined}/>
-            <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+            <PanLogo onClick={(isResultScreen || hasStoredRecipes || isFavoritesScreen) ? resetAll : undefined}/>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", lineHeight: 1.1 }}>{t.title}</div>
               <div style={{ fontSize: 12, color: "#ea580c", fontWeight: 500, marginTop: 2 }}>{t.subtitle}</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <button onClick={() => { if (navigator.share) navigator.share({ title: t.title, url: APP_LINK }); }}
+            {/* FIX #2: кнопка избранного с цифрой в шапке */}
+            <button onClick={goToFavorites}
+              style={{ background: favorites.length > 0 ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.06)",
+                border: favorites.length > 0 ? "1px solid rgba(251,191,36,0.35)" : "1px solid rgba(255,255,255,0.09)",
+                borderRadius: 9, padding: "6px 10px", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 4, color: "#fbbf24",
+                fontSize: 12, fontWeight: 700 }}>
+              <StarIcon filled={favorites.length > 0} size={14}/>
+              {favorites.length > 0 && <span>{favorites.length}</span>}
+            </button>
+            <button onClick={() => { if (navigator.share) navigator.share({ title: t.title, text: APP_LINK }); }}
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <ShareSVG/>
@@ -820,12 +1029,43 @@ export default function App() {
 
         <div style={sDiv}/>
 
-        {isResultScreen ? (
+        {/* FIX #2: ЭКРАН ИЗБРАННОЕ */}
+        {isFavoritesScreen ? (
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1,
+              textTransform: "uppercase", marginBottom: 14 }}>{t.favoritesTitle}</div>
+
+            {favorites.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 12px" }}>
+                <div style={{ fontSize: 44, marginBottom: 14 }}>⭐</div>
+                <div style={{ fontSize: 16, fontWeight: 500, color: "#f1f5f9", marginBottom: 10 }}>{t.favoritesEmpty}</div>
+                <div style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, marginBottom: 18, padding: "0 8px" }}>{t.favoritesEmptyDesc}</div>
+                <button onClick={backFromFavorites} style={{
+                  background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
+                  borderRadius: 50, color: "#fb923c", fontSize: 14, fontWeight: 600,
+                  padding: "12px 24px", cursor: "pointer" }}>
+                  {t.favoritesBackBtn}
+                </button>
+              </div>
+            ) : (
+              <>
+                {favorites.map((r, i) => renderRecipeCard(r, i, favOpenSet, handleToggleFavRecipe))}
+                <button onClick={backFromFavorites}
+                  style={{ width: "100%", background: "none", border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 50, color: "#64748b", fontSize: 14, padding: "12px 16px", cursor: "pointer", marginTop: 8 }}>
+                  {t.favoritesBackBtn}
+                </button>
+              </>
+            )}
+
+            <FeedbackButton t={t}/>
+          </div>
+
+        ) : isResultScreen ? (
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1,
               textTransform: "uppercase", marginBottom: 14 }}>{t.results}</div>
 
-            {/* Бейджи диет на экране результата */}
             {resultsDiets.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, marginTop: -6 }}>
                 {resultsDiets.map(d => (
@@ -850,7 +1090,6 @@ export default function App() {
               </div>
             )}
 
-            {/* FIX #4: Анимированный лоадер вместо статичного эмодзи */}
             {loading && <CookingLoader text={t.loading}/>}
 
             {noResults && !loading && (
@@ -877,93 +1116,7 @@ export default function App() {
               </div>
             )}
 
-            {!loading && recipes && recipes.map((r, i) => (
-              <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
-                <div onClick={() => handleToggleRecipe(i)}
-                  style={{ display: "flex", alignItems: "center", gap: 14, padding: "15px 16px", cursor: "pointer" }}>
-                  <span style={{ fontSize: 30 }}>{r.emoji}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: "#f1f5f9", marginBottom: 6, textAlign: "left" }}>{r.name}</div>
-                    <div style={{ fontSize: 13, color: "#64748b", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      ⏱ {r.time}
-                      <span style={{ color: "#4ade80", marginLeft: 8 }}>● {t.diff[r.difficulty] || r.difficulty}</span>
-                      {r.calories && <span style={{ color: "#fb923c", marginLeft: 8 }}>● ~{r.calories} {t.kcalPer}</span>}
-                    </div>
-                  </div>
-                  <span style={{ color: "#64748b", fontSize: 12, flexShrink: 0 }}>{openSet.has(i) ? "▲" : "▼"}</span>
-                </div>
-                {openSet.has(i) && (
-                  <div style={{ padding: "14px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-                      {r.ingredients.map((ing, j) => (
-                        <span key={j} style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)",
-                          borderRadius: 8, color: "#6ee7b7", fontSize: 13, padding: "4px 10px" }}>{ing}</span>
-                      ))}
-                    </div>
-
-                    {/* FIX #5: БЖУ-пилюли — показываются только если бэк прислал данные */}
-                    {(r.protein != null && r.fat != null && r.carbs != null) && (
-                      <>
-                        <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-                          {t.macrosLabel}
-                        </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-                          {/* Белки — зелёный */}
-                          <span style={{
-                            background: "rgba(16,185,129,0.1)",
-                            border: "1px solid rgba(16,185,129,0.25)",
-                            borderRadius: 8, color: "#6ee7b7",
-                            fontSize: 13, padding: "4px 10px",
-                          }}>🥩 {t.protein} {r.protein}г</span>
-                          {/* Жиры — оранжевый */}
-                          <span style={{
-                            background: "rgba(234,88,12,0.12)",
-                            border: "1px solid rgba(234,88,12,0.3)",
-                            borderRadius: 8, color: "#fb923c",
-                            fontSize: 13, padding: "4px 10px",
-                          }}>🥑 {t.fat} {r.fat}г</span>
-                          {/* Углеводы — синий */}
-                          <span style={{
-                            background: "rgba(59,130,246,0.1)",
-                            border: "1px solid rgba(59,130,246,0.3)",
-                            borderRadius: 8, color: "#93c5fd",
-                            fontSize: 13, padding: "4px 10px",
-                          }}>🌾 {t.carbs} {r.carbs}г</span>
-                        </div>
-                      </>
-                    )}
-
-                    <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>{t.howto}</div>
-                    {r.steps.map((step, j) => (
-                      <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
-                        <span style={{ background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.3)",
-                          borderRadius: "50%", color: "#fb923c", fontSize: 12, fontWeight: 700,
-                          minWidth: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          {j + 1}
-                        </span>
-                        <span style={{ fontSize: 14, color: "#94a3b8", lineHeight: 1.5, textAlign: "left" }}>{step}</span>
-                      </div>
-                    ))}
-                    <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                      {/* FIX #3: Кнопка «Поделиться» вызывает сразу navigator.share без кастомного шера */}
-                      <button onClick={() => handleShare(r)}
-                        style={{ flex: 1, background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.4)",
-                          borderRadius: 10, color: "#fb923c", fontSize: 13, fontWeight: 600, padding: "10px",
-                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                        <ShareSVG color="#fb923c"/> {t.share}
-                      </button>
-                      <button onClick={() => handleShopList(r, i)}
-                        style={{ flex: 1, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)",
-                          borderRadius: 10, color: "#6ee7b7", fontSize: 13, padding: "10px",
-                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                        {copiedIdx === i ? "✓ " + t.copiedMsg : t.shopList}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+            {!loading && recipes && recipes.map((r, i) => renderRecipeCard(r, i, openSet, handleToggleRecipe))}
 
             {!loading && recipes && (
               <button onClick={showMore} disabled={loadingMore}
@@ -971,7 +1124,13 @@ export default function App() {
                   borderRadius: 50, color: "#fb923c", fontSize: 15, fontWeight: 600, padding: "14px 16px",
                   cursor: loadingMore ? "wait" : "pointer", display: "flex", alignItems: "center",
                   justifyContent: "center", gap: 6, marginTop: 6, opacity: loadingMore ? 0.7 : 1 }}>
-                {loadingMore ? t.loadingMore : t.showMore}
+                {loadingMore ? (
+                  <>{t.loadingMore}<span style={{ display: "inline-block", marginLeft: 2 }}>
+                    <span style={{ animation: "dotPulse 1.4s infinite" }}>.</span>
+                    <span style={{ animation: "dotPulse 1.4s infinite 0.2s" }}>.</span>
+                    <span style={{ animation: "dotPulse 1.4s infinite 0.4s" }}>.</span>
+                  </span></>
+                ) : t.showMore}
               </button>
             )}
 
@@ -1073,14 +1232,20 @@ export default function App() {
 
             {filtersOpen && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-                {/* FIX #6: Калории — секция с бейджем PREMIUM */}
+                {/* FIX #1: Калории — бейдж PREMIUM СЛЕВА, заголовок ПО ЦЕНТРУ */}
                 <div style={sFilterBlock}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, color: "#64748b" }}>
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "auto 1fr auto",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 4
+                  }}>
+                    <PremiumBadge label={t.premiumBadge}/>
+                    <span style={{ fontSize: 13, color: "#64748b", textAlign: "center" }}>
                       {t.calories}
-                      <PremiumBadge label={t.premiumBadge}/>
                     </span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "#fb923c" }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "#fb923c", whiteSpace: "nowrap" }}>
                       {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
                     </span>
                   </div>
@@ -1094,7 +1259,7 @@ export default function App() {
                 </div>
 
                 <div style={sFilterBlock}>
-                  <div style={{ marginBottom: 10 }}>
+                  <div style={{ marginBottom: 10, textAlign: "center" }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.cookTime}</span>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1105,7 +1270,7 @@ export default function App() {
                 </div>
 
                 <div style={sFilterBlock}>
-                  <div style={{ marginBottom: 10 }}>
+                  <div style={{ marginBottom: 10, textAlign: "center" }}>
                     <span style={{ fontSize: 13, color: "#64748b" }}>{t.difficulty}</span>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1115,13 +1280,18 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* FIX #6: Диета — секция с бейджем PREMIUM (один раз на блок) */}
+                {/* FIX #1: Диета — бейдж PREMIUM СЛЕВА, заголовок ПО ЦЕНТРУ */}
                 <div style={sFilterBlock}>
-                  <div style={{ marginBottom: 10 }}>
-                    <span style={{ fontSize: 13, color: "#64748b" }}>
-                      {t.diet}
-                      <PremiumBadge label={t.premiumBadge}/>
-                    </span>
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "auto 1fr auto",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 10
+                  }}>
+                    <PremiumBadge label={t.premiumBadge}/>
+                    <span style={{ fontSize: 13, color: "#64748b", textAlign: "center" }}>{t.diet}</span>
+                    <span/>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {t.dietItems.map(d => (
@@ -1137,10 +1307,15 @@ export default function App() {
               border: "none", borderRadius: 50, color: "#fff", fontSize: 16, fontWeight: 700,
               padding: "15px 16px", cursor: (!canGenerate || loading) ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxSizing: "border-box" }}>
-              {loading ? t.loading : t.btn}
+              {loading ? (
+                <>{t.loading}<span style={{ display: "inline-block", marginLeft: 2 }}>
+                  <span style={{ animation: "dotPulse 1.4s infinite" }}>.</span>
+                  <span style={{ animation: "dotPulse 1.4s infinite 0.2s" }}>.</span>
+                  <span style={{ animation: "dotPulse 1.4s infinite 0.4s" }}>.</span>
+                </span></>
+              ) : t.btn}
             </button>
 
-            {/* FIX #1: «К моим рецептам →» — внизу ПОД главной кнопкой, стрелка вправо */}
             {hasStoredRecipes && (
               <button onClick={backToRecipes}
                 style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
@@ -1151,7 +1326,6 @@ export default function App() {
               </button>
             )}
 
-            {/* FIX #7: Реферальная система — секция «Пригласи друга» */}
             <div style={{
               marginTop: 28,
               background: "linear-gradient(135deg, rgba(234,88,12,0.08), rgba(251,191,36,0.05))",
@@ -1165,7 +1339,6 @@ export default function App() {
                 {t.refDesc}
               </div>
 
-              {/* Прогресс-бар */}
               <div style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                   <span style={{ fontSize: 11, color: "#64748b" }}>
@@ -1195,7 +1368,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* FIX #6: Плашка Premium внизу над обратной связью */}
             <div style={{
               marginTop: 14,
               background: "rgba(251,191,36,0.06)",
