@@ -1280,18 +1280,21 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* FIX #1: Диета — бейдж PREMIUM СЛЕВА, заголовок ПО ЦЕНТРУ */}
+                {/* FIX #1: Диета — бейдж PREMIUM СЛЕВА, заголовок ПО ЦЕНТРУ (с зеркальным spacer'ом справа) */}
                 <div style={sFilterBlock}>
                   <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "auto 1fr auto",
+                    display: "flex",
                     alignItems: "center",
-                    gap: 8,
                     marginBottom: 10
                   }}>
-                    <PremiumBadge label={t.premiumBadge}/>
-                    <span style={{ fontSize: 13, color: "#64748b", textAlign: "center" }}>{t.diet}</span>
-                    <span/>
+                    <div style={{ flex: "0 0 auto" }}>
+                      <PremiumBadge label={t.premiumBadge}/>
+                    </div>
+                    <span style={{ flex: 1, fontSize: 13, color: "#64748b", textAlign: "center" }}>{t.diet}</span>
+                    {/* Зеркальный spacer той же ширины что бейдж — для центрирования заголовка */}
+                    <div style={{ flex: "0 0 auto", visibility: "hidden" }}>
+                      <PremiumBadge label={t.premiumBadge}/>
+                    </div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {t.dietItems.map(d => (
