@@ -3,12 +3,184 @@ import { useState, useCallback, useRef, useEffect } from "react";
 const WORKER_URL = "https://recipe-backend-production-416c.up.railway.app/api/recipes";
 const FEEDBACK_URL = "https://recipe-backend-production-416c.up.railway.app/api/feedback";
 
-// Единая чистая ссылка на Mini App без хвоста tgWebAppData
 const APP_LINK = "https://t.me/appetiteai_bot";
 
-// FIX #2: лимит избранного и ключ localStorage
 const FAVORITES_KEY = "favorites";
 const FAVORITES_LIMIT = 100;
+const LANG_KEY = "userLang"; // FIX #1: сохранённый выбор юзера приоритетнее автоопределения
+
+// FIX #1: славянские языки → русский, остальное → английский
+const SLAVIC_LANGS = ['ru', 'uk', 'be', 'kk', 'uz', 'ky', 'tg', 'tk'];
+
+// FIX #2: словарь slug-ID для viral deep link
+// Короткие 2-3 символьные коды, чтобы влезть в 64-символьный startapp лимит
+const PRODUCT_SLUGS = {
+  // meat
+  "Курица": "ck", "Chicken": "ck",
+  "Говядина": "bf", "Beef": "bf",
+  "Свинина": "pk", "Pork": "pk",
+  "Фарш": "gm", "Ground meat": "gm",
+  "Бекон": "bn", "Bacon": "bn",
+  "Индейка": "tr", "Turkey": "tr",
+  "Утка": "dk", "Duck": "dk",
+  "Кролик": "rb", "Rabbit": "rb",
+  "Ягнёнок": "lm", "Lamb": "lm",
+  "Сосиски": "sg", "Sausages": "sg",
+  // fish
+  "Лосось": "sl", "Salmon": "sl",
+  "Треска": "cd", "Cod": "cd",
+  "Тунец": "tu", "Tuna": "tu",
+  "Креветки": "sm", "Shrimp": "sm",
+  "Сельдь": "hr", "Herring": "hr",
+  "Минтай": "po", "Pollock": "po",
+  "Форель": "tt", "Trout": "tt",
+  "Кальмар": "sq", "Squid": "sq",
+  "Мидии": "ms", "Mussels": "ms",
+  "Скумбрия": "mc", "Mackerel": "mc",
+  // veggies
+  "Картошка": "pt", "Potato": "pt",
+  "Лук": "on", "Onion": "on",
+  "Чеснок": "gl", "Garlic": "gl",
+  "Морковь": "cr", "Carrot": "cr",
+  "Помидор": "tm", "Tomato": "tm",
+  "Перец": "pp", "Pepper": "pp",
+  "Баклажан": "eg", "Eggplant": "eg",
+  "Кабачок": "zc", "Zucchini": "zc",
+  "Капуста": "cb", "Cabbage": "cb",
+  "Шпинат": "sp", "Spinach": "sp",
+  "Брокколи": "br", "Broccoli": "br",
+  "Огурец": "cu", "Cucumber": "cu",
+  "Свёкла": "bt", "Beetroot": "bt",
+  "Тыква": "pm", "Pumpkin": "pm",
+  "Сельдерей": "cl", "Celery": "cl",
+  "Кукуруза": "co", "Corn": "co",
+  // dairy
+  "Яйца": "eg2", "Eggs": "eg2",
+  "Молоко": "mi", "Milk": "mi",
+  "Сыр": "ch", "Cheese": "ch",
+  "Сметана": "sc", "Sour cream": "sc",
+  "Масло": "bu", "Butter": "bu",
+  "Творог": "cc", "Cottage cheese": "cc",
+  "Кефир": "kf", "Kefir": "kf",
+  "Сливки": "cm", "Cream": "cm",
+  "Пармезан": "pa", "Parmesan": "pa",
+  "Моцарелла": "mo", "Mozzarella": "mo",
+  // grains
+  "Рис": "rc", "Rice": "rc",
+  "Гречка": "bw", "Buckwheat": "bw",
+  "Паста": "ps", "Pasta": "ps",
+  "Овсянка": "oa", "Oatmeal": "oa",
+  "Перловка": "ba", "Barley": "ba",
+  "Булгур": "bg", "Bulgur": "bg",
+  "Чечевица": "le", "Lentils": "le",
+  "Нут": "ck2", "Chickpeas": "ck2",
+  "Манка": "se", "Semolina": "se",
+  "Кускус": "cs", "Couscous": "cs",
+  // fruits
+  "Яблоко": "ap", "Apple": "ap",
+  "Банан": "bn2", "Banana": "bn2",
+  "Лимон": "lm2", "Lemon": "lm2",
+  "Апельсин": "or", "Orange": "or",
+  "Клубника": "st", "Strawberry": "st",
+  "Черника": "bl", "Blueberry": "bl",
+  "Манго": "mg", "Mango": "mg",
+  "Груша": "pe", "Pear": "pe",
+  "Виноград": "gr", "Grapes": "gr",
+  "Персик": "pc", "Peach": "pc",
+  // bakery
+  "Мука": "fl", "Flour": "fl",
+  "Дрожжи": "ye", "Yeast": "ye",
+  "Слоёное тесто": "pu", "Puff pastry": "pu",
+  "Лаваш": "pi", "Pita": "pi",
+  "Батон": "ba2", "Baguette": "ba2",
+  "Ржаной хлеб": "rb2", "Rye bread": "rb2",
+  "Панировочные сухари": "bc", "Breadcrumbs": "bc",
+  "Блинная мука": "pa2", "Pancake mix": "pa2",
+  // desserts
+  "Шоколад": "co2", "Chocolate": "co2",
+  "Какао": "ca", "Cocoa": "ca",
+  "Ваниль": "va", "Vanilla": "va",
+  "Мёд": "hn", "Honey": "hn",
+  "Сахар": "su", "Sugar": "su",
+  "Желатин": "ge", "Gelatin": "ge",
+  "Сгущёнка": "cm2", "Condensed milk": "cm2",
+  "Карамель": "cr2", "Caramel": "cr2",
+  "Маршмеллоу": "mh", "Marshmallow": "mh",
+  // drinks
+  "Сок апельсиновый": "oj", "Orange juice": "oj",
+  "Кокосовое молоко": "cn", "Coconut milk": "cn",
+  "Зелёный чай": "gt", "Green tea": "gt",
+  "Кофе": "cf", "Coffee": "cf",
+  "Имбирь": "gi", "Ginger": "gi",
+  "Мята": "mn", "Mint": "mn",
+  // other
+  "Оливковое масло": "oo", "Olive oil": "oo",
+  "Соевый соус": "ss", "Soy sauce": "ss",
+  "Томатная паста": "tp", "Tomato paste": "tp",
+  "Грибы": "mu", "Mushrooms": "mu",
+  "Фасоль": "be", "Beans": "be",
+  "Горчица": "md", "Mustard": "md",
+  "Уксус": "vi", "Vinegar": "vi",
+  "Соль": "sa", "Salt": "sa",
+  "Перец чёрный": "bp", "Black pepper": "bp",
+};
+
+// Обратный словарь slug → название продукта (с учётом языка)
+function buildReverseSlugDict(lang) {
+  const dict = {};
+  const isRu = lang === "ru";
+  Object.entries(PRODUCT_SLUGS).forEach(([name, slug]) => {
+    const isCyrillic = /[а-яёА-ЯЁ]/.test(name);
+    if ((isRu && isCyrillic) || (!isRu && !isCyrillic)) {
+      dict[slug] = name;
+    }
+  });
+  return dict;
+}
+
+// Кодируем массив продуктов в "ck-rc-tm"
+function encodeProductsForUrl(items) {
+  const slugs = items.map(n => PRODUCT_SLUGS[n]).filter(Boolean);
+  return slugs.join("-");
+}
+
+// Декодируем "ck-rc-tm" в массив названий на текущем языке
+function decodeProductsFromUrl(encoded, lang) {
+  if (!encoded) return [];
+  const reverse = buildReverseSlugDict(lang);
+  return encoded.split("-").map(s => reverse[s]).filter(Boolean);
+}
+
+// FIX #3: Универсальный шер с тремя уровнями fallback
+// Уровень 1: Telegram-нативный openTelegramLink (работает везде в Telegram)
+// Уровень 2: navigator.share (для браузеров вне Telegram)
+// Уровень 3: clipboard + toast
+async function shareUniversal(text, urlForTelegram, onToast) {
+  const tg = window.Telegram?.WebApp;
+  // Уровень 1: пробуем Telegram-нативный шер
+  if (tg && typeof tg.openTelegramLink === "function") {
+    try {
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(urlForTelegram)}&text=${encodeURIComponent(text)}`;
+      tg.openTelegramLink(shareUrl);
+      return;
+    } catch { /* падаем дальше */ }
+  }
+  // Уровень 2: обычный браузер с поддержкой Web Share
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+      return;
+    } catch (e) {
+      if (e?.name === "AbortError") return; // юзер отменил
+      // иначе fallback
+    }
+  }
+  // Уровень 3: копирование
+  try {
+    await navigator.clipboard.writeText(text);
+    if (onToast) onToast();
+  } catch { /* */ }
+}
 
 // ─── DATA / Локализация ──────────────────────────────────────────────────────
 const DATA = {
@@ -98,7 +270,6 @@ const DATA = {
     refStatsLabel: "Приглашено",
     refToNextLabel: "до месяца Premium",
     refShareText: "🍳 Готовлю с Appetite AI — AI-помощник по рецептам в Telegram!\n\nТебе неделя Premium бесплатно при первом запуске 👇",
-    // FIX #2: избранное
     favoritesTitle: "Избранное",
     favoritesEmpty: "У тебя пока нет избранных рецептов",
     favoritesEmptyDesc: "Сохрани понравившийся — звёздочка ⭐ в правом верхнем углу карточки",
@@ -106,6 +277,10 @@ const DATA = {
     favoritesLimitMsg: "Достигнут лимит 100 рецептов. Удали старые из Избранного",
     addedToFavorites: "Добавлено в избранное ⭐",
     removedFromFavorites: "Удалено из избранного",
+    // FIX #2: viral deep link
+    sharedBannerTitle: "🎁 Тебе прислали подборку продуктов",
+    sharedBannerDesc: "Нажми «Что приготовить?» — я найду рецепты",
+    viralCTA: "👇 Попробуй сам с моими продуктами:",
   },
   en: {
     title: "Appetite AI",
@@ -200,11 +375,14 @@ const DATA = {
     favoritesLimitMsg: "Limit of 100 recipes reached. Remove old ones from Favorites",
     addedToFavorites: "Added to favorites ⭐",
     removedFromFavorites: "Removed from favorites",
+    sharedBannerTitle: "🎁 Someone shared products with you",
+    sharedBannerDesc: "Tap «What can I cook?» — I'll find recipes",
+    viralCTA: "👇 Try yourself with my products:",
   },
 };
 
-// ─── Helper: текст рецепта для шеринга/копирования ───────────────────────────
-function buildRecipeText(r, t) {
+// ─── Helper: текст рецепта для шеринга с viral link ──────────────────────────
+function buildRecipeText(r, t, viralLink) {
   let txt = `${r.emoji} ${r.name}\n`;
   txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
   if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
@@ -213,18 +391,22 @@ function buildRecipeText(r, t) {
     txt += `\n\n${t.macrosLabel}: ${t.protein} ${r.protein}г • ${t.fat} ${r.fat}г • ${t.carbs} ${r.carbs}г`;
   }
   txt += `\n\n👨‍🍳 ${t.howto}:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
-  txt += `\n\n${APP_LINK}`;
+  // FIX #2: viral CTA + ссылка с продуктами
+  if (viralLink && viralLink !== APP_LINK) {
+    txt += `\n\n${t.viralCTA}\n${viralLink}`;
+  } else {
+    txt += `\n\n${APP_LINK}`;
+  }
   return txt;
 }
 
-// FIX #2: уникальный ID рецепта (для определения «в избранном или нет»)
 function recipeId(r) {
   if (!r) return "";
   const ing = (r.ingredients || []).slice(0, 3).join("|");
   return `${r.name}::${ing}`;
 }
 
-// ─── CookingLoader: FIX #5 анимированные точки в тексте ──────────────────────
+// ─── CookingLoader ───────────────────────────────────────────────────────────
 function CookingLoader({ text }) {
   return (
     <div style={{ textAlign: "center", padding: "32px 12px" }}>
@@ -251,30 +433,23 @@ function CookingLoader({ text }) {
       `}</style>
       <div style={{ position: "relative", width: 96, height: 96, margin: "0 auto 18px" }}>
         <svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="38" cy="22" rx="3.5" ry="6"
-            fill="#fb923c"
+          <ellipse cx="38" cy="22" rx="3.5" ry="6" fill="#fb923c"
             style={{ transformOrigin: "38px 28px", animation: "steamRise 2.4s ease-out infinite" }}/>
-          <ellipse cx="50" cy="20" rx="3" ry="5"
-            fill="#fb923c"
+          <ellipse cx="50" cy="20" rx="3" ry="5" fill="#fb923c"
             style={{ transformOrigin: "50px 26px", animation: "steamRise 2.4s ease-out infinite 0.7s" }}/>
-          <ellipse cx="60" cy="22" rx="3.5" ry="5.5"
-            fill="#fb923c"
+          <ellipse cx="60" cy="22" rx="3.5" ry="5.5" fill="#fb923c"
             style={{ transformOrigin: "60px 28px", animation: "steamRise 2.4s ease-out infinite 1.4s" }}/>
-
           <path d="M 18 42 L 78 42 L 74 76 Q 74 80 70 80 L 26 80 Q 22 80 22 76 Z"
             fill="#1f2937" stroke="#475569" strokeWidth="2"/>
           <ellipse cx="48" cy="42" rx="30" ry="4" fill="#ea580c" opacity="0.65"/>
-
           <rect x="12" y="46" width="8" height="4" rx="2" fill="#475569"/>
           <rect x="76" y="46" width="8" height="4" rx="2" fill="#475569"/>
-
           <circle cx="36" cy="44" r="2.5" fill="#fb923c"
             style={{ transformOrigin: "36px 44px", animation: "bubbleRise 1.6s ease-in-out infinite" }}/>
           <circle cx="48" cy="46" r="2" fill="#fb923c"
             style={{ transformOrigin: "48px 46px", animation: "bubbleRise 1.6s ease-in-out infinite 0.4s" }}/>
           <circle cx="60" cy="44" r="2.3" fill="#fb923c"
             style={{ transformOrigin: "60px 44px", animation: "bubbleRise 1.6s ease-in-out infinite 0.9s" }}/>
-
           <path d="M 38 86 Q 40 82 44 84 Q 46 80 48 84 Q 50 80 52 84 Q 56 82 58 86 Q 56 90 48 90 Q 40 90 38 86 Z"
             fill="#ea580c"
             style={{ transformOrigin: "48px 88px", animation: "flameFlicker 0.6s ease-in-out infinite" }}/>
@@ -283,7 +458,6 @@ function CookingLoader({ text }) {
             style={{ transformOrigin: "48px 88px", animation: "flameFlicker 0.4s ease-in-out infinite" }}/>
         </svg>
       </div>
-      {/* FIX #5: текст + три анимированных точки бегущей волной */}
       <div style={{ fontSize: 15, color: "#94a3b8", lineHeight: 1.6 }}>
         {text}
         <span style={{ display: "inline-block", marginLeft: 2 }}>
@@ -296,7 +470,6 @@ function CookingLoader({ text }) {
   );
 }
 
-// ─── Иконки ───────────────────────────────────────────────────────────────────
 function PanLogo({ onClick }) {
   return (
     <div onClick={onClick} style={{
@@ -337,7 +510,6 @@ function ChatSVG() {
   );
 }
 
-// FIX #2: иконка звёздочки (заполненная или контурная)
 function StarIcon({ filled, size = 20 }) {
   if (filled) {
     return (
@@ -353,8 +525,7 @@ function StarIcon({ filled, size = 20 }) {
   );
 }
 
-// ─── PremiumBadge: FIX #1 — компактный бейдж, можно ставить слева ───────────
-function PremiumBadge({ label, marginLeft = 0, marginRight = 0 }) {
+function PremiumBadge({ label }) {
   return (
     <span style={{
       fontSize: 9, fontWeight: 700,
@@ -362,7 +533,6 @@ function PremiumBadge({ label, marginLeft = 0, marginRight = 0 }) {
       color: "#fff",
       padding: "2px 7px",
       borderRadius: 10,
-      marginLeft, marginRight,
       letterSpacing: 0.4,
       boxShadow: "0 0 8px rgba(251,191,36,0.25)",
       verticalAlign: "middle",
@@ -372,7 +542,6 @@ function PremiumBadge({ label, marginLeft = 0, marginRight = 0 }) {
   );
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ message, visible }) {
   if (!visible) return null;
   return (
@@ -387,7 +556,32 @@ function Toast({ message, visible }) {
   );
 }
 
-// ─── FeedbackButton ───────────────────────────────────────────────────────────
+// FIX #2: Баннер «Тебе прислали подборку продуктов»
+function SharedProductsBanner({ t, onDismiss }) {
+  return (
+    <div style={{
+      background: "linear-gradient(135deg, rgba(251,191,36,0.12), rgba(234,88,12,0.08))",
+      border: "1px solid rgba(251,191,36,0.4)",
+      borderRadius: 12, padding: "12px 14px",
+      marginBottom: 14,
+      display: "flex", alignItems: "center", gap: 10,
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#fbbf24", marginBottom: 2 }}>
+          {t.sharedBannerTitle}
+        </div>
+        <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.4 }}>
+          {t.sharedBannerDesc}
+        </div>
+      </div>
+      <button onClick={onDismiss} style={{
+        background: "none", border: "none", color: "#64748b",
+        fontSize: 20, cursor: "pointer", lineHeight: 1, padding: "0 4px", flexShrink: 0,
+      }} aria-label="dismiss">×</button>
+    </div>
+  );
+}
+
 function FeedbackButton({ t }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -478,7 +672,6 @@ function FeedbackButton({ t }) {
   );
 }
 
-// ─── SmartField ───────────────────────────────────────────────────────────────
 function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClear, showClearWhenTyping }) {
   const inputRef = useRef(null);
   const hasText = value.trim().length > 0;
@@ -524,7 +717,6 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
   );
 }
 
-// ─── DualSlider ───────────────────────────────────────────────────────────────
 function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
   const trackRef = useRef(null);
   const dragging = useRef(null);
@@ -580,9 +772,20 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [lang, setLang] = useState("ru");
-  const [toast, setToast] = useState(null);
+  // FIX #1: автоопределение языка с приоритетом сохранённого выбора
+  const [lang, setLang] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LANG_KEY);
+      if (saved === "ru" || saved === "en") return saved;
+    } catch { /* */ }
+    const tgLang = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
+    if (tgLang === "en") return "en";
+    if (tgLang && SLAVIC_LANGS.includes(tgLang)) return "ru";
+    if (tgLang) return "en";
+    return "ru";
+  });
 
+  const [toast, setToast] = useState(null);
   const [user] = useState(() => ({ isPremium: true }));
 
   const [referrals] = useState(() => {
@@ -593,7 +796,6 @@ export default function App() {
     return { invitedCount: 0, bonusDays: 0 };
   });
 
-  // FIX #2: избранное — массив объектов рецептов из localStorage
   const [favorites, setFavorites] = useState(() => {
     try {
       const saved = localStorage.getItem(FAVORITES_KEY);
@@ -606,31 +808,7 @@ export default function App() {
   });
 
   const [tgUserId, setTgUserId] = useState(null);
-
-  useEffect(() => {
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.expand();
-      window.Telegram.WebApp.disableVerticalSwipes?.();
-
-      const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
-      if (startParam?.startsWith("ref_")) {
-        const referrerId = startParam.replace("ref_", "");
-        try { localStorage.setItem("referrer", referrerId); } catch { /* */ }
-      }
-
-      const myId = window.Telegram.WebApp.initDataUnsafe?.user?.id;
-      if (myId) setTgUserId(String(myId));
-    }
-  }, []);
-
-  // FIX #2: сохранение избранного в localStorage при каждом изменении
-  useEffect(() => {
-    try {
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-    } catch { /* localStorage может быть недоступен */ }
-  }, [favorites]);
-
-  const t = DATA[lang];
+  const [sharedBannerVisible, setSharedBannerVisible] = useState(false);
 
   const [dish, setDish] = useState("");
   const [dishConfirmed, setDishConfirmed] = useState(false);
@@ -654,28 +832,62 @@ export default function App() {
   const [apiError, setApiError] = useState(false);
   const [noResults, setNoResults] = useState(false);
   const [openSet, setOpenSet] = useState(new Set());
-  const [favOpenSet, setFavOpenSet] = useState(new Set()); // отдельный стейт для раскрытия в избранном
+  const [favOpenSet, setFavOpenSet] = useState(new Set());
   const [copiedIdx, setCopiedIdx] = useState(null);
-
   const [resultsDiets, setResultsDiets] = useState([]);
-
-  // FIX #2: добавили новый view 'favorites'
-  // null = главная, 'results' = экран рецептов, 'favorites' = избранное
   const [view, setView] = useState(null);
+
+  // FIX #1 + #2: парсинг startapp и Telegram WebApp init
+  useEffect(() => {
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.expand();
+      window.Telegram.WebApp.disableVerticalSwipes?.();
+
+      const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
+      // FIX #2: viral deep link с продуктами (p_<slugs>)
+      if (startParam?.startsWith("p_")) {
+        const encoded = startParam.substring(2);
+        const products = decodeProductsFromUrl(encoded, lang);
+        if (products.length > 0) {
+          setSelected(new Set(products));
+          setSharedBannerVisible(true);
+        }
+      }
+      // реферальная ссылка
+      else if (startParam?.startsWith("ref_")) {
+        const referrerId = startParam.replace("ref_", "");
+        try { localStorage.setItem("referrer", referrerId); } catch { /* */ }
+      }
+
+      const myId = window.Telegram.WebApp.initDataUnsafe?.user?.id;
+      if (myId) setTgUserId(String(myId));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // FIX #1: сохраняем выбор языка
+  useEffect(() => {
+    try { localStorage.setItem(LANG_KEY, lang); } catch { /* */ }
+  }, [lang]);
+
+  useEffect(() => {
+    try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites)); } catch { /* */ }
+  }, [favorites]);
+
+  const t = DATA[lang];
 
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2000);
   };
 
-  // FIX #2: добавить/удалить рецепт из избранного
   const isFavorite = useCallback((r) => {
     const id = recipeId(r);
     return favorites.some(f => recipeId(f) === id);
   }, [favorites]);
 
   const toggleFavorite = (r, e) => {
-    if (e) e.stopPropagation(); // не раскрываем карточку при тапе на звезду
+    if (e) e.stopPropagation();
     const id = recipeId(r);
     setFavorites(prev => {
       const exists = prev.some(f => recipeId(f) === id);
@@ -703,10 +915,16 @@ export default function App() {
   };
   const clearProduct = () => { setProductInput(""); setProductConfirmed(false); };
   const handleProductChange = v => { setProductInput(v); setProductConfirmed(false); };
-  const removeProduct = item => setSelected(prev => { const n = new Set(prev); n.delete(item); return n; });
+  const removeProduct = item => {
+    setSelected(prev => { const n = new Set(prev); n.delete(item); return n; });
+    setSharedBannerVisible(false);
+  };
 
   const handleCatClick = key => setActiveCat(prev => prev === key ? null : key);
-  const toggle = item => setSelected(prev => { const n = new Set(prev); n.has(item) ? n.delete(item) : n.add(item); return n; });
+  const toggle = item => {
+    setSelected(prev => { const n = new Set(prev); n.has(item) ? n.delete(item) : n.add(item); return n; });
+    setSharedBannerVisible(false);
+  };
   const toggleDiet = d => setActiveDiets(prev => { const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n; });
   const handleSlider = (newMin, newMax) => { setCalMin(newMin); setCalMax(newMax); setCalAny(false); };
 
@@ -755,6 +973,7 @@ export default function App() {
     setLoading(true); setRecipes(null); setOpenSet(new Set());
     setView('results');
     setResultsDiets([...activeDiets]);
+    setSharedBannerVisible(false);
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -790,22 +1009,21 @@ export default function App() {
     setLoadingMore(false);
   }, [recipes, buildBody]);
 
-  // FIX #4: Шер без url — только title + text (ссылка зашита внутри text)
+  // FIX #2 + #3: Шер рецепта с viral deep link + универсальный шер
   const handleShare = async (r) => {
-    const text = buildRecipeText(r, t);
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: r.name, text });
-      } catch { /* юзер отменил — silent */ }
-    } else {
-      try {
-        await navigator.clipboard.writeText(text);
-        showToast(t.copiedMsg);
-      } catch { /* */ }
-    }
+    // Извлекаем продукты из строк ингредиентов вида "🥩 Курица — 200 г"
+    const productNames = (r.ingredients || []).map(ing => {
+      // Убираем эмодзи в начале и берём слово до тире/двоеточия
+      const cleaned = ing.replace(/^\S+\s+/, "").split(/[—\-:,]/)[0].trim();
+      return cleaned;
+    }).filter(Boolean);
+    const encoded = encodeProductsForUrl(productNames);
+    const viralLink = encoded ? `${APP_LINK}?startapp=p_${encoded}` : APP_LINK;
+    const text = buildRecipeText(r, t, viralLink);
+    await shareUniversal(text, viralLink, () => showToast(t.copiedMsg));
   };
 
-  // FIX #3: Список покупок — только ингредиенты, без шагов рецепта
+  // FIX #3: Список покупок — только ингредиенты (без шагов)
   const handleShopList = (r, idx) => {
     let txt = `🛒 ${r.name}\n\n`;
     txt += `${t.ingredientsLabel}:\n${r.ingredients.join('\n')}`;
@@ -813,19 +1031,17 @@ export default function App() {
     setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
   };
 
+  // FIX #3: Реферальный шер через универсальный
   const handleRefShare = async () => {
-    const refLink = tgUserId ? `${APP_LINK}?start=ref_${tgUserId}` : APP_LINK;
+    const refLink = tgUserId ? `${APP_LINK}?startapp=ref_${tgUserId}` : APP_LINK;
     const text = `${t.refShareText}\n\n${refLink}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: t.title, text });
-      } catch { /* */ }
-    } else {
-      try {
-        await navigator.clipboard.writeText(text);
-        showToast(t.copiedMsg);
-      } catch { /* */ }
-    }
+    await shareUniversal(text, refLink, () => showToast(t.copiedMsg));
+  };
+
+  // FIX #3: Шер из шапки через универсальный
+  const handleHeaderShare = async () => {
+    const text = `${t.title} — ${t.subtitle}\n\n${APP_LINK}`;
+    await shareUniversal(text, APP_LINK, () => showToast(t.copiedMsg));
   };
 
   const backToFilters = () => {
@@ -840,7 +1056,6 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // FIX #2: переход в избранное и обратно
   const goToFavorites = () => {
     setFavOpenSet(new Set());
     setView('favorites');
@@ -876,7 +1091,6 @@ export default function App() {
     fontSize: 14, padding: "6px 12px", cursor: "pointer",
   });
 
-  // FIX #2: универсальный рендерер карточки рецепта (используется и в результатах, и в избранном)
   const renderRecipeCard = (r, i, openState, toggleHandler) => {
     const isOpen = openState.has(i);
     const fav = isFavorite(r);
@@ -894,7 +1108,6 @@ export default function App() {
               {r.calories && <span style={{ color: "#fb923c", marginLeft: 8 }}>● ~{r.calories} {t.kcalPer}</span>}
             </div>
           </div>
-          {/* FIX #2: звёздочка избранного — справа от стрелки */}
           <button
             onClick={(e) => toggleFavorite(r, e)}
             onMouseDown={(e) => e.stopPropagation()}
@@ -994,7 +1207,6 @@ export default function App() {
         boxSizing: "border-box",
       }}>
 
-        {/* ── Header ────────────────────────────────────────────────────── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
             <PanLogo onClick={(isResultScreen || hasStoredRecipes || isFavoritesScreen) ? resetAll : undefined}/>
@@ -1004,7 +1216,6 @@ export default function App() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            {/* FIX #2: кнопка избранного с цифрой в шапке */}
             <button onClick={goToFavorites}
               style={{ background: favorites.length > 0 ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.06)",
                 border: favorites.length > 0 ? "1px solid rgba(251,191,36,0.35)" : "1px solid rgba(255,255,255,0.09)",
@@ -1014,7 +1225,8 @@ export default function App() {
               <StarIcon filled={favorites.length > 0} size={14}/>
               {favorites.length > 0 && <span>{favorites.length}</span>}
             </button>
-            <button onClick={() => { if (navigator.share) navigator.share({ title: t.title, text: APP_LINK }); }}
+            {/* FIX #3: универсальный шер в шапке */}
+            <button onClick={handleHeaderShare}
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <ShareSVG/>
@@ -1029,7 +1241,6 @@ export default function App() {
 
         <div style={sDiv}/>
 
-        {/* FIX #2: ЭКРАН ИЗБРАННОЕ */}
         {isFavoritesScreen ? (
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1,
@@ -1147,6 +1358,11 @@ export default function App() {
 
         ) : (
           <>
+            {/* FIX #2: Баннер «Тебе прислали продукты» */}
+            {sharedBannerVisible && selected.size > 0 && (
+              <SharedProductsBanner t={t} onDismiss={() => setSharedBannerVisible(false)}/>
+            )}
+
             <SmartField placeholder={t.dishPlaceholder} value={dish}
               onChange={handleDishChange} onConfirm={confirmDish}
               confirmed={dishConfirmed} onClear={clearDish} showClearWhenTyping={true}/>
@@ -1161,7 +1377,7 @@ export default function App() {
               <div style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <span style={sLabel}>{t.selectedLabel}: {selected.size}</span>
-                  <button onClick={() => setSelected(new Set())}
+                  <button onClick={() => { setSelected(new Set()); setSharedBannerVisible(false); }}
                     style={{ background: "none", border: "none", color: "#64748b", fontSize: 12, cursor: "pointer" }}>
                     {t.clearAll}
                   </button>
@@ -1232,7 +1448,6 @@ export default function App() {
 
             {filtersOpen && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-                {/* FIX #1: Калории — бейдж PREMIUM СЛЕВА, заголовок ПО ЦЕНТРУ */}
                 <div style={sFilterBlock}>
                   <div style={{
                     display: "grid",
@@ -1280,7 +1495,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* FIX #1: Диета — бейдж PREMIUM СЛЕВА, заголовок ПО ЦЕНТРУ (с зеркальным spacer'ом справа) */}
                 <div style={sFilterBlock}>
                   <div style={{
                     display: "flex",
@@ -1291,7 +1505,6 @@ export default function App() {
                       <PremiumBadge label={t.premiumBadge}/>
                     </div>
                     <span style={{ flex: 1, fontSize: 13, color: "#64748b", textAlign: "center" }}>{t.diet}</span>
-                    {/* Зеркальный spacer той же ширины что бейдж — для центрирования заголовка */}
                     <div style={{ flex: "0 0 auto", visibility: "hidden" }}>
                       <PremiumBadge label={t.premiumBadge}/>
                     </div>
