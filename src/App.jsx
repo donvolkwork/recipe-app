@@ -7,13 +7,10 @@ const APP_LINK = "https://t.me/appetiteai_bot";
 
 const FAVORITES_KEY = "favorites";
 const FAVORITES_LIMIT = 100;
-const LANG_KEY = "userLang"; // FIX #1: сохранённый выбор юзера приоритетнее автоопределения
+const LANG_KEY = "userLang";
 
-// FIX #1: славянские языки → русский, остальное → английский
 const SLAVIC_LANGS = ['ru', 'uk', 'be', 'kk', 'uz', 'ky', 'tg', 'tk'];
 
-// FIX #2: словарь slug-ID для viral deep link
-// Короткие 2-3 символьные коды, чтобы влезть в 64-символьный startapp лимит
 const PRODUCT_SLUGS = {
   // meat
   "Курица": "ck", "Chicken": "ck",
@@ -125,7 +122,6 @@ const PRODUCT_SLUGS = {
   "Перец чёрный": "bp", "Black pepper": "bp",
 };
 
-// Обратный словарь slug → название продукта (с учётом языка)
 function buildReverseSlugDict(lang) {
   const dict = {};
   const isRu = lang === "ru";
@@ -138,44 +134,81 @@ function buildReverseSlugDict(lang) {
   return dict;
 }
 
-// Кодируем массив продуктов в "ck-rc-tm"
 function encodeProductsForUrl(items) {
   const slugs = items.map(n => PRODUCT_SLUGS[n]).filter(Boolean);
   return slugs.join("-");
 }
 
-// Декодируем "ck-rc-tm" в массив названий на текущем языке
 function decodeProductsFromUrl(encoded, lang) {
   if (!encoded) return [];
   const reverse = buildReverseSlugDict(lang);
   return encoded.split("-").map(s => reverse[s]).filter(Boolean);
 }
 
-// FIX #3: Универсальный шер с тремя уровнями fallback
-// Уровень 1: Telegram-нативный openTelegramLink (работает везде в Telegram)
-// Уровень 2: navigator.share (для браузеров вне Telegram)
-// Уровень 3: clipboard + toast
+// FIX P6-#4: Умное извлечение продуктов через корни слов
+// "Куриное филе — 600 г" → находит корень "кури" → матч с "Курица"
+// "Лук репчатый — 300 г" → находит корень "лук" → матч с "Лук"
+// "Сметана 20% — 250 мл" → находит "смета" → матч со "Сметана"
+function extractKnownProducts(ingredients, lang) {
+  if (!ingredients || ingredients.length === 0) return [];
+  const isRu = lang === "ru";
+  const knownProducts = Object.keys(PRODUCT_SLUGS).filter(name => {
+    const isCyrillic = /[а-яёА-ЯЁ]/.test(name);
+    return (isRu && isCyrillic) || (!isRu && !isCyrillic);
+  });
+
+  const found = new Set();
+  ingredients.forEach(ing => {
+    const ingLower = ing.toLowerCase();
+    knownProducts.forEach(productName => {
+      const minRootLen = Math.min(4, productName.length);
+      const root = productName.toLowerCase().slice(0, minRootLen);
+      if (ingLower.includes(root)) {
+        found.add(productName);
+      }
+    });
+  });
+  return [...found];
+}
+
+// FIX P6-#3: Универсальный шер с 4 уровнями
+// Уровень 1: tg.openTelegramLink (iOS, Telegram Desktop)
+// Уровень 1.5 (НОВОЕ): window.open для Android (Xiaomi MIUI)
+// Уровень 2: navigator.share
+// Уровень 3: clipboard + улучшенный тост
 async function shareUniversal(text, urlForTelegram, onToast) {
   const tg = window.Telegram?.WebApp;
-  // Уровень 1: пробуем Telegram-нативный шер
+  const platform = tg?.platform;
+  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(urlForTelegram)}&text=${encodeURIComponent(text)}`;
+
+  // Уровень 1: Telegram-нативный (работает на iOS, Telegram Desktop)
   if (tg && typeof tg.openTelegramLink === "function") {
     try {
-      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(urlForTelegram)}&text=${encodeURIComponent(text)}`;
       tg.openTelegramLink(shareUrl);
       return;
     } catch { /* падаем дальше */ }
   }
-  // Уровень 2: обычный браузер с поддержкой Web Share
+
+  // Уровень 1.5: window.open ТОЛЬКО для Android (фильтр платформы)
+  // iOS физически НЕ ВЫПОЛНИТ эту ветку — там platform === 'ios'
+  if (platform === 'android') {
+    try {
+      window.open(shareUrl, '_blank');
+      return;
+    } catch { /* падаем дальше */ }
+  }
+
+  // Уровень 2: Web Share API (обычный браузер)
   if (navigator.share) {
     try {
       await navigator.share({ text });
       return;
     } catch (e) {
-      if (e?.name === "AbortError") return; // юзер отменил
-      // иначе fallback
+      if (e?.name === "AbortError") return;
     }
   }
-  // Уровень 3: копирование
+
+  // Уровень 3: копирование + улучшенный тост
   try {
     await navigator.clipboard.writeText(text);
     if (onToast) onToast();
@@ -250,6 +283,7 @@ const DATA = {
     errorDesc: "Не удалось получить рецепты. Попробуй ещё раз через несколько секунд.",
     retry: "Попробовать снова",
     copiedMsg: "Скопировано!",
+    copiedShareMsg: "📋 Скопировано — вставь в чат друга",
     catLabel: "Категория",
     prodLabel: "Продукты",
     selectedLabel: "Выбрано",
@@ -277,7 +311,6 @@ const DATA = {
     favoritesLimitMsg: "Достигнут лимит 100 рецептов. Удали старые из Избранного",
     addedToFavorites: "Добавлено в избранное ⭐",
     removedFromFavorites: "Удалено из избранного",
-    // FIX #2: viral deep link
     sharedBannerTitle: "🎁 Тебе прислали подборку продуктов",
     sharedBannerDesc: "Нажми «Что приготовить?» — я найду рецепты",
     viralCTA: "👇 Попробуй сам с моими продуктами:",
@@ -348,6 +381,7 @@ const DATA = {
     errorDesc: "Couldn't get recipes. Please try again in a few seconds.",
     retry: "Try again",
     copiedMsg: "Copied!",
+    copiedShareMsg: "📋 Copied — paste it to a friend's chat",
     catLabel: "Category",
     prodLabel: "Products",
     selectedLabel: "Selected",
@@ -381,7 +415,6 @@ const DATA = {
   },
 };
 
-// ─── Helper: текст рецепта для шеринга с viral link ──────────────────────────
 function buildRecipeText(r, t, viralLink) {
   let txt = `${r.emoji} ${r.name}\n`;
   txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
@@ -391,7 +424,6 @@ function buildRecipeText(r, t, viralLink) {
     txt += `\n\n${t.macrosLabel}: ${t.protein} ${r.protein}г • ${t.fat} ${r.fat}г • ${t.carbs} ${r.carbs}г`;
   }
   txt += `\n\n👨‍🍳 ${t.howto}:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
-  // FIX #2: viral CTA + ссылка с продуктами
   if (viralLink && viralLink !== APP_LINK) {
     txt += `\n\n${t.viralCTA}\n${viralLink}`;
   } else {
@@ -406,7 +438,6 @@ function recipeId(r) {
   return `${r.name}::${ing}`;
 }
 
-// ─── CookingLoader ───────────────────────────────────────────────────────────
 function CookingLoader({ text }) {
   return (
     <div style={{ textAlign: "center", padding: "32px 12px" }}>
@@ -556,7 +587,6 @@ function Toast({ message, visible }) {
   );
 }
 
-// FIX #2: Баннер «Тебе прислали подборку продуктов»
 function SharedProductsBanner({ t, onDismiss }) {
   return (
     <div style={{
@@ -772,7 +802,7 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  // FIX #1: автоопределение языка с приоритетом сохранённого выбора
+  // FIX P6-#1: автоопределение языка — сохраняем ТОЛЬКО при ручном клике (не в useEffect)
   const [lang, setLang] = useState(() => {
     try {
       const saved = localStorage.getItem(LANG_KEY);
@@ -837,14 +867,12 @@ export default function App() {
   const [resultsDiets, setResultsDiets] = useState([]);
   const [view, setView] = useState(null);
 
-  // FIX #1 + #2: парсинг startapp и Telegram WebApp init
   useEffect(() => {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.expand();
       window.Telegram.WebApp.disableVerticalSwipes?.();
 
       const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
-      // FIX #2: viral deep link с продуктами (p_<slugs>)
       if (startParam?.startsWith("p_")) {
         const encoded = startParam.substring(2);
         const products = decodeProductsFromUrl(encoded, lang);
@@ -853,7 +881,6 @@ export default function App() {
           setSharedBannerVisible(true);
         }
       }
-      // реферальная ссылка
       else if (startParam?.startsWith("ref_")) {
         const referrerId = startParam.replace("ref_", "");
         try { localStorage.setItem("referrer", referrerId); } catch { /* */ }
@@ -865,10 +892,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // FIX #1: сохраняем выбор языка
-  useEffect(() => {
-    try { localStorage.setItem(LANG_KEY, lang); } catch { /* */ }
-  }, [lang]);
+  // FIX P6-#1: УБРАЛ useEffect который писал userLang при каждом изменении lang
+  // Теперь язык сохраняется ТОЛЬКО в handleLangSwitch (при явном клике юзера)
 
   useEffect(() => {
     try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites)); } catch { /* */ }
@@ -944,8 +969,13 @@ export default function App() {
     });
   };
 
+  // FIX P6-#1: язык сохраняем в localStorage ТОЛЬКО здесь — при явном клике юзера
   const handleLangSwitch = () => {
-    setLang(l => l === "ru" ? "en" : "ru");
+    setLang(prevLang => {
+      const newLang = prevLang === "ru" ? "en" : "ru";
+      try { localStorage.setItem(LANG_KEY, newLang); } catch { /* */ }
+      return newLang;
+    });
     setRecipes(null); setNoResults(false); setApiError(false); setOpenSet(new Set()); setWarning(null);
     setResultsDiets([]); setView(null);
   };
@@ -1009,21 +1039,15 @@ export default function App() {
     setLoadingMore(false);
   }, [recipes, buildBody]);
 
-  // FIX #2 + #3: Шер рецепта с viral deep link + универсальный шер
+  // FIX P6-#4: Шер рецепта с УМНЫМ извлечением продуктов через корни слов
   const handleShare = async (r) => {
-    // Извлекаем продукты из строк ингредиентов вида "🥩 Курица — 200 г"
-    const productNames = (r.ingredients || []).map(ing => {
-      // Убираем эмодзи в начале и берём слово до тире/двоеточия
-      const cleaned = ing.replace(/^\S+\s+/, "").split(/[—\-:,]/)[0].trim();
-      return cleaned;
-    }).filter(Boolean);
+    const productNames = extractKnownProducts(r.ingredients || [], lang);
     const encoded = encodeProductsForUrl(productNames);
     const viralLink = encoded ? `${APP_LINK}?startapp=p_${encoded}` : APP_LINK;
     const text = buildRecipeText(r, t, viralLink);
-    await shareUniversal(text, viralLink, () => showToast(t.copiedMsg));
+    await shareUniversal(text, viralLink, () => showToast(t.copiedShareMsg));
   };
 
-  // FIX #3: Список покупок — только ингредиенты (без шагов)
   const handleShopList = (r, idx) => {
     let txt = `🛒 ${r.name}\n\n`;
     txt += `${t.ingredientsLabel}:\n${r.ingredients.join('\n')}`;
@@ -1031,17 +1055,15 @@ export default function App() {
     setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
   };
 
-  // FIX #3: Реферальный шер через универсальный
   const handleRefShare = async () => {
     const refLink = tgUserId ? `${APP_LINK}?startapp=ref_${tgUserId}` : APP_LINK;
     const text = `${t.refShareText}\n\n${refLink}`;
-    await shareUniversal(text, refLink, () => showToast(t.copiedMsg));
+    await shareUniversal(text, refLink, () => showToast(t.copiedShareMsg));
   };
 
-  // FIX #3: Шер из шапки через универсальный
   const handleHeaderShare = async () => {
     const text = `${t.title} — ${t.subtitle}\n\n${APP_LINK}`;
-    await shareUniversal(text, APP_LINK, () => showToast(t.copiedMsg));
+    await shareUniversal(text, APP_LINK, () => showToast(t.copiedShareMsg));
   };
 
   const backToFilters = () => {
@@ -1225,7 +1247,6 @@ export default function App() {
               <StarIcon filled={favorites.length > 0} size={14}/>
               {favorites.length > 0 && <span>{favorites.length}</span>}
             </button>
-            {/* FIX #3: универсальный шер в шапке */}
             <button onClick={handleHeaderShare}
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
@@ -1358,7 +1379,6 @@ export default function App() {
 
         ) : (
           <>
-            {/* FIX #2: Баннер «Тебе прислали продукты» */}
             {sharedBannerVisible && selected.size > 0 && (
               <SharedProductsBanner t={t} onDismiss={() => setSharedBannerVisible(false)}/>
             )}
