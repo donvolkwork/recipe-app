@@ -4,6 +4,9 @@ const WORKER_URL = "https://recipe-backend-production-416c.up.railway.app/api/re
 const FEEDBACK_URL = "https://recipe-backend-production-416c.up.railway.app/api/feedback";
 
 const APP_LINK = "https://t.me/appetiteai_bot";
+// FIX P8-#3: Маркер для активации кнопки «ЗАПУСТИТЬ» под сообщением в Telegram
+// Без startapp Telegram не рисует кнопку под ссылкой на бота
+const APP_LINK_SHARED = "https://t.me/appetiteai_bot?startapp=shared";
 
 const FAVORITES_KEY = "favorites";
 const FAVORITES_LIMIT = 100;
@@ -11,9 +14,9 @@ const LANG_KEY = "userLang";
 
 const SLAVIC_LANGS = ['ru', 'uk', 'be', 'kk', 'uz', 'ky', 'tg', 'tk'];
 
-// FIX P7-#2: АГРЕССИВНЫЙ multi-fallback шер для Xiaomi MIUI WebView
-// Последовательно пробуем 6 методов; первый который сработает — выходит через return
-// На iOS первый же tg.openTelegramLink перехватит и дальше не пойдёт
+// FIX P8-#1 + #2 + #5: Чистый шер с тремя уровнями вместо шести
+// Убраны Уровни 1.7 и 1.9 которые вызывали белое мерцание на Xiaomi
+// Добавлен Уровень 1.2: switchInlineQuery — Telegram-нативный выбор контакта для Android
 async function shareUniversal(text, urlForTelegram, onToast) {
   const tg = window.Telegram?.WebApp;
   const platform = tg?.platform;
@@ -27,44 +30,19 @@ async function shareUniversal(text, urlForTelegram, onToast) {
     } catch { /* падаем дальше */ }
   }
 
-  // === Уровень 1.3: tg.openLink (НОВОЕ - другой метод Telegram SDK) ===
-  // Иногда работает на MIUI где openTelegramLink падает
+  // === Уровень 1.2: switchInlineQuery — Telegram-нативный выбор контакта (Android Xiaomi) ===
+  // Открывает встроенный диалог Telegram «выбрать чат» — обходит ограничения WebView
+  if (platform === 'android' && tg && typeof tg.switchInlineQuery === "function") {
+    try {
+      tg.switchInlineQuery(text, ['users', 'groups']);
+      return;
+    } catch { /* падаем дальше */ }
+  }
+
+  // === Уровень 1.5: tg.openLink (запасной для Android) ===
   if (platform === 'android' && tg && typeof tg.openLink === "function") {
     try {
       tg.openLink(shareUrl, { try_instant_view: false });
-      return;
-    } catch { /* падаем дальше */ }
-  }
-
-  // === Уровень 1.5: window.open для Android ===
-  if (platform === 'android') {
-    try {
-      const win = window.open(shareUrl, '_blank');
-      if (win) return;
-      // если window.open вернул null — браузер заблокировал, идём дальше
-    } catch { /* падаем дальше */ }
-  }
-
-  // === Уровень 1.7: НОВОЕ - программный клик по невидимой ссылке (Android) ===
-  // Обход блокировки window.open в WebView через нативный <a> элемент
-  if (platform === 'android') {
-    try {
-      const a = document.createElement('a');
-      a.href = shareUrl;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      return;
-    } catch { /* падаем дальше */ }
-  }
-
-  // === Уровень 1.9: НОВОЕ - прямая навигация (последняя попытка на Android) ===
-  // Грубо, но работает в большинстве WebView потому что это базовое поведение
-  if (platform === 'android') {
-    try {
-      window.location.href = shareUrl;
       return;
     } catch { /* падаем дальше */ }
   }
@@ -182,7 +160,6 @@ const DATA = {
     favoritesLimitMsg: "Достигнут лимит 100 рецептов. Удали старые из Избранного",
     addedToFavorites: "Добавлено в избранное ⭐",
     removedFromFavorites: "Удалено из избранного",
-    // FIX P7-#1: упрощённый CTA шера без подбора продуктов
     viralCTA: "👇 Попробуй сам:",
   },
   en: {
@@ -283,7 +260,7 @@ const DATA = {
   },
 };
 
-// FIX P7-#1: упрощённый текст рецепта — простая ссылка без slug-кодирования
+// FIX P8-#3: Используем APP_LINK_SHARED (с ?startapp=shared) для активации кнопки «ЗАПУСТИТЬ»
 function buildRecipeText(r, t) {
   let txt = `${r.emoji} ${r.name}\n`;
   txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
@@ -293,7 +270,7 @@ function buildRecipeText(r, t) {
     txt += `\n\n${t.macrosLabel}: ${t.protein} ${r.protein}г • ${t.fat} ${r.fat}г • ${t.carbs} ${r.carbs}г`;
   }
   txt += `\n\n👨‍🍳 ${t.howto}:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
-  txt += `\n\n${t.viralCTA}\n${APP_LINK}`;
+  txt += `\n\n${t.viralCTA}\n${APP_LINK_SHARED}`;
   return txt;
 }
 
@@ -587,6 +564,8 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
   );
 }
 
+// FIX P8-#4: Увеличенная зона клика на ползунках слайдера (40×40 вместо 20×20)
+// Невидимая область вокруг ползунка ловит тапы — палец легче попадает
 function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
   const trackRef = useRef(null);
   const dragging = useRef(null);
@@ -621,7 +600,7 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
   const maxPct = getPct(valMax);
   return (
     <div ref={trackRef} style={{ position: "relative", height: 4, background: "rgba(255,255,255,0.07)",
-      borderRadius: 2, margin: "10px 0 8px", opacity: disabled ? 0.4 : 1, cursor: "pointer" }}>
+      borderRadius: 2, margin: "20px 0 18px", opacity: disabled ? 0.4 : 1, cursor: "pointer" }}>
       <div style={{ position: "absolute", height: 4,
         background: disabled ? "rgba(255,255,255,0.1)" : "rgba(234,88,12,0.5)",
         borderRadius: 2, left: `${minPct}%`, right: `${100 - maxPct}%` }}/>
@@ -629,12 +608,20 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
         <div key={thumb}
           onMouseDown={e => startDrag(thumb, e)}
           onTouchStart={e => startDrag(thumb, e)}
-          style={{ position: "absolute", top: -8,
-            left: `calc(${thumb === "min" ? minPct : maxPct}% - 10px)`,
+          style={{
+            position: "absolute", top: -18,
+            left: `calc(${thumb === "min" ? minPct : maxPct}% - 20px)`,
+            width: 40, height: 40,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "grab", touchAction: "none", zIndex: 2,
+          }}>
+          <div style={{
             width: 20, height: 20,
-            background: disabled ? "#64748b" : "#fb923c", borderRadius: "50%",
+            background: disabled ? "#64748b" : "#fb923c",
+            borderRadius: "50%",
             boxShadow: disabled ? "none" : "0 0 6px rgba(234,88,12,0.7)",
-            cursor: "grab", touchAction: "none", zIndex: 2 }}/>
+          }}/>
+        </div>
       ))}
     </div>
   );
@@ -711,8 +698,8 @@ export default function App() {
       window.Telegram.WebApp.disableVerticalSwipes?.();
 
       const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
-      // FIX P7-#1: убран парсинг p_<slugs> — viral deep link удалён
-      // Реферальные ссылки оставлены для будущей системы рефералов
+      // FIX P7-#1: viral deep link удалён, реферальные ссылки оставлены
+      // FIX P8-#3: маркер 'shared' игнорируется — это только триггер кнопки «ЗАПУСТИТЬ»
       if (startParam?.startsWith("ref_")) {
         const referrerId = startParam.replace("ref_", "");
         try { localStorage.setItem("referrer", referrerId); } catch { /* */ }
@@ -863,10 +850,10 @@ export default function App() {
     setLoadingMore(false);
   }, [recipes, buildBody]);
 
-  // FIX P7-#1: упрощённый шер — всегда чистая ссылка на бота
+  // FIX P8-#3: используем APP_LINK_SHARED для активации кнопки «ЗАПУСТИТЬ»
   const handleShare = async (r) => {
     const text = buildRecipeText(r, t);
-    await shareUniversal(text, APP_LINK, () => showToast(t.copiedShareMsg));
+    await shareUniversal(text, APP_LINK_SHARED, () => showToast(t.copiedShareMsg));
   };
 
   const handleShopList = (r, idx) => {
@@ -877,14 +864,15 @@ export default function App() {
   };
 
   const handleRefShare = async () => {
-    const refLink = tgUserId ? `${APP_LINK}?startapp=ref_${tgUserId}` : APP_LINK;
+    const refLink = tgUserId ? `${APP_LINK}?startapp=ref_${tgUserId}` : APP_LINK_SHARED;
     const text = `${t.refShareText}\n\n${refLink}`;
     await shareUniversal(text, refLink, () => showToast(t.copiedShareMsg));
   };
 
+  // FIX P8-#3: верхний шер тоже с APP_LINK_SHARED для кнопки «ЗАПУСТИТЬ»
   const handleHeaderShare = async () => {
-    const text = `${t.title} — ${t.subtitle}\n\n${APP_LINK}`;
-    await shareUniversal(text, APP_LINK, () => showToast(t.copiedShareMsg));
+    const text = `${t.title} — ${t.subtitle}\n\n${APP_LINK_SHARED}`;
+    await shareUniversal(text, APP_LINK_SHARED, () => showToast(t.copiedShareMsg));
   };
 
   const backToFilters = () => {
