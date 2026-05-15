@@ -4,8 +4,6 @@ const WORKER_URL = "https://recipe-backend-production-416c.up.railway.app/api/re
 const FEEDBACK_URL = "https://recipe-backend-production-416c.up.railway.app/api/feedback";
 
 const APP_LINK = "https://t.me/appetiteai_bot";
-// FIX P8-#3: Маркер для активации кнопки «ЗАПУСТИТЬ» под сообщением в Telegram
-// Без startapp Telegram не рисует кнопку под ссылкой на бота
 const APP_LINK_SHARED = "https://t.me/appetiteai_bot?startapp=shared";
 
 const FAVORITES_KEY = "favorites";
@@ -14,40 +12,32 @@ const LANG_KEY = "userLang";
 
 const SLAVIC_LANGS = ['ru', 'uk', 'be', 'kk', 'uz', 'ky', 'tg', 'tk'];
 
-// FIX P8-#1 + #2 + #5: Чистый шер с тремя уровнями вместо шести
-// Убраны Уровни 1.7 и 1.9 которые вызывали белое мерцание на Xiaomi
-// Добавлен Уровень 1.2: switchInlineQuery — Telegram-нативный выбор контакта для Android
 async function shareUniversal(text, urlForTelegram, onToast) {
   const tg = window.Telegram?.WebApp;
   const platform = tg?.platform;
   const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(urlForTelegram)}&text=${encodeURIComponent(text)}`;
 
-  // === Уровень 1: tg.openTelegramLink (iOS, Telegram Desktop) ===
   if (tg && typeof tg.openTelegramLink === "function") {
     try {
       tg.openTelegramLink(shareUrl);
       return;
-    } catch { /* падаем дальше */ }
+    } catch { /* */ }
   }
 
-  // === Уровень 1.2: switchInlineQuery — Telegram-нативный выбор контакта (Android Xiaomi) ===
-  // Открывает встроенный диалог Telegram «выбрать чат» — обходит ограничения WebView
   if (platform === 'android' && tg && typeof tg.switchInlineQuery === "function") {
     try {
       tg.switchInlineQuery(text, ['users', 'groups']);
       return;
-    } catch { /* падаем дальше */ }
+    } catch { /* */ }
   }
 
-  // === Уровень 1.5: tg.openLink (запасной для Android) ===
   if (platform === 'android' && tg && typeof tg.openLink === "function") {
     try {
       tg.openLink(shareUrl, { try_instant_view: false });
       return;
-    } catch { /* падаем дальше */ }
+    } catch { /* */ }
   }
 
-  // === Уровень 2: Web Share API (обычный браузер) ===
   if (navigator.share) {
     try {
       await navigator.share({ text });
@@ -57,14 +47,12 @@ async function shareUniversal(text, urlForTelegram, onToast) {
     }
   }
 
-  // === Уровень 3: копирование + тост ===
   try {
     await navigator.clipboard.writeText(text);
     if (onToast) onToast();
   } catch { /* */ }
 }
 
-// ─── DATA / Локализация ──────────────────────────────────────────────────────
 const DATA = {
   ru: {
     title: "Appetite AI",
@@ -260,7 +248,6 @@ const DATA = {
   },
 };
 
-// FIX P8-#3: Используем APP_LINK_SHARED (с ?startapp=shared) для активации кнопки «ЗАПУСТИТЬ»
 function buildRecipeText(r, t) {
   let txt = `${r.emoji} ${r.name}\n`;
   txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
@@ -564,8 +551,6 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
   );
 }
 
-// FIX P8-#4: Увеличенная зона клика на ползунках слайдера (40×40 вместо 20×20)
-// Невидимая область вокруг ползунка ловит тапы — палец легче попадает
 function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
   const trackRef = useRef(null);
   const dragging = useRef(null);
@@ -627,7 +612,6 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
   );
 }
 
-// ─── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [lang, setLang] = useState(() => {
     try {
@@ -698,8 +682,6 @@ export default function App() {
       window.Telegram.WebApp.disableVerticalSwipes?.();
 
       const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
-      // FIX P7-#1: viral deep link удалён, реферальные ссылки оставлены
-      // FIX P8-#3: маркер 'shared' игнорируется — это только триггер кнопки «ЗАПУСТИТЬ»
       if (startParam?.startsWith("ref_")) {
         const referrerId = startParam.replace("ref_", "");
         try { localStorage.setItem("referrer", referrerId); } catch { /* */ }
@@ -850,7 +832,6 @@ export default function App() {
     setLoadingMore(false);
   }, [recipes, buildBody]);
 
-  // FIX P8-#3: используем APP_LINK_SHARED для активации кнопки «ЗАПУСТИТЬ»
   const handleShare = async (r) => {
     const text = buildRecipeText(r, t);
     await shareUniversal(text, APP_LINK_SHARED, () => showToast(t.copiedShareMsg));
@@ -869,7 +850,6 @@ export default function App() {
     await shareUniversal(text, refLink, () => showToast(t.copiedShareMsg));
   };
 
-  // FIX P8-#3: верхний шер тоже с APP_LINK_SHARED для кнопки «ЗАПУСТИТЬ»
   const handleHeaderShare = async () => {
     const text = `${t.title} — ${t.subtitle}\n\n${APP_LINK_SHARED}`;
     await shareUniversal(text, APP_LINK_SHARED, () => showToast(t.copiedShareMsg));
@@ -1285,7 +1265,8 @@ export default function App() {
                     <span style={{ fontSize: 13, color: "#64748b", textAlign: "center" }}>
                       {t.calories}
                     </span>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "#fb923c", whiteSpace: "nowrap" }}>
+                    {/* FIX P8.1: убран fontWeight: 600 → стал 500, fontSize: 14 → стал 13. Оранжевый цвет сохраняем как подсветку. */}
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "#fb923c", whiteSpace: "nowrap" }}>
                       {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
                     </span>
                   </div>
