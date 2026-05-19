@@ -10,7 +10,12 @@ const FAVORITES_KEY = "favorites";
 const FAVORITES_LIMIT = 100;
 const LANG_KEY = "userLang";
 
-const SLAVIC_LANGS = ['ru', 'uk', 'be', 'kk', 'uz', 'ky', 'tg', 'tk'];
+// PATCH 9: украинский выделен из SLAVIC_LANGS — теперь у него отдельная ветка
+// Остальные славянские (be, kk, uz, ky, tg, tk) по-прежнему попадают в ru
+const RU_FALLBACK_LANGS = ['be', 'kk', 'uz', 'ky', 'tg', 'tk'];
+
+// PATCH 9: список поддерживаемых языков для циклического тоггла
+const SUPPORTED_LANGS = ['ru', 'uk', 'en'];
 
 async function shareUniversal(text, urlForTelegram, onToast) {
   const tg = window.Telegram?.WebApp;
@@ -149,6 +154,103 @@ const DATA = {
     addedToFavorites: "Добавлено в избранное ⭐",
     removedFromFavorites: "Удалено из избранного",
     viralCTA: "👇 Попробуй сам:",
+  },
+  // PATCH 9: украинская локализация (минимальная адаптация - те же продукты)
+  uk: {
+    title: "Appetite AI",
+    subtitle: "Готуй без пошуку",
+    dishPlaceholder: "Введіть страву...",
+    cats: {
+      meat:     { label: "М’ясо",     icon: "🥩" },
+      fish:     { label: "Риба",      icon: "🐟" },
+      veggies:  { label: "Овочі",     icon: "🥦" },
+      dairy:    { label: "Молочне",   icon: "🧀" },
+      grains:   { label: "Крупи",     icon: "🌾" },
+      fruits:   { label: "Фрукти",    icon: "🍎" },
+      bakery:   { label: "Випічка",   icon: "🍞" },
+      desserts: { label: "Десерти",   icon: "🍰" },
+      drinks:   { label: "Напої",     icon: "🥤" },
+      other:    { label: "Інше",      icon: "🧂" },
+    },
+    items: {
+      meat:     ["Курка","Яловичина","Свинина","Фарш","Бекон","Індичка","Качка","Кролик","Ягня","Сосиски"],
+      fish:     ["Лосось","Тріска","Тунець","Креветки","Оселедець","Мінтай","Форель","Кальмар","Міді","Скумбрія"],
+      veggies:  ["Картопля","Цибуля","Часник","Морква","Помідор","Перець","Баклажан","Кабачок","Капуста","Шпинат","Броколі","Огірок","Буряк","Гарбуз","Селера","Кукурудза"],
+      dairy:    ["Яйця","Молоко","Сир","Сметана","Масло","Сир кисломолочний","Кефір","Вершки","Пармезан","Моцарела"],
+      grains:   ["Рис","Гречка","Паста","Вівсянка","Перловка","Булгур","Сочевиця","Нут","Манка","Кускус"],
+      fruits:   ["Яблуко","Банан","Лимон","Апельсин","Полуниця","Чорниця","Манго","Груша","Виноград","Персик"],
+      bakery:   ["Борошно","Дріжджі","Листкове тісто","Лаваш","Батон","Житній хліб","Панірувальні сухарі","Млинцеве борошно"],
+      desserts: ["Шоколад","Какао","Ваніль","Мед","Цукор","Желатин","Згущене молоко","Карамель","Маршмелоу"],
+      drinks:   ["Молоко","Кефір","Апельсиновий сік","Кокосове молоко","Зелений чай","Кава","Імбир","М’ята"],
+      other:    ["Оливкова олія","Соєвий соус","Томатна паста","Гриби","Квасоля","Мед","Гірчиця","Оцет","Сіль","Чорний перець"],
+    },
+    addProductPlaceholder: "Додати продукт...",
+    btn: "🔍 Що приготувати?",
+    loading: "Придумую рецепти",
+    loadingMore: "Шукаю ще",
+    clearAll: "очистити все",
+    selected: "обрано",
+    results: "Варіанти страв",
+    back: "← До фільтрів",
+    toMyRecipes: "До моїх рецептів →",
+    showMore: "🔍 Придумати ще",
+    kcal: "ккал",
+    kcalPer: "ккал/порція",
+    diff: { easy: "Легко", medium: "Середньо", hard: "Складно" },
+    howto: "Як готувати",
+    ingredientsLabel: "Інгредієнти",
+    macrosLabel: "БЖВ на 100г",
+    protein: "Білки",
+    fat: "Жири",
+    carbs: "Вуглеводи",
+    share: "Поділитися",
+    shopList: "📋 Список покупок",
+    orProducts: "або оберіть продукти",
+    calories: "Калорії на порцію",
+    cookTime: "Час приготування",
+    difficulty: "Складність",
+    diet: "Дієта",
+    filters: "Фільтри",
+    dietItems: ["🥗 Вегетаріанське","🌾 Без глютену","☦️ Піст","🥑 Кето","🥣 Для шлунка","🔥 Для схуднення"],
+    timeChips: ["До 20 хв","До 40 хв","До 60 хв","Будь-який"],
+    diffChips: ["Легко","Середньо","Складно","Будь-яка"],
+    calAny: "Будь-які",
+    noResults: "Рецепт не знайдено",
+    noResultsDesc: "З такою комбінацією фільтрів рецептів немає. Спробуй розширити діапазон калорій, змінити складність або прибрати дієтичні обмеження.",
+    changeParams: "← Змінити параметри",
+    errorTitle: "Щось пішло не так",
+    errorDesc: "Не вдалося отримати рецепти. Спробуй ще раз через кілька секунд.",
+    retry: "Спробувати ще раз",
+    copiedMsg: "Скопійовано!",
+    copiedShareMsg: "📋 Скопійовано — встав у чат другу",
+    catLabel: "Категорія",
+    prodLabel: "Продукти",
+    selectedLabel: "Обрано",
+    warning: "⚠️",
+    feedbackBtn: "Зворотний зв’язок",
+    feedbackTitle: "Напиши нам",
+    feedbackHint: "Знайшли баг, є пропозиція або питання — пишіть, ми читаємо кожне повідомлення.",
+    feedbackPlaceholder: "Ваше повідомлення...",
+    feedbackSend: "Надіслати",
+    feedbackSent: "✓ Надіслано!",
+    feedbackCancel: "Скасувати",
+    premiumBadge: "✨ PREMIUM",
+    premiumBannerTitle: "🎁 Premium відкрито для всіх — тестова фаза",
+    premiumBannerDesc: "Калорії, всі дієти, обране — спробуй просто зараз!",
+    refTitle: "🎁 Запроси друга — отримай Premium",
+    refDesc: "1 друг = 7 днів Premium • 5 друзів = місяць • 10 = 3 місяці",
+    refShareBtn: "📤 Поділитися посиланням",
+    refStatsLabel: "Запрошено",
+    refToNextLabel: "до місяця Premium",
+    refShareText: "🍳 Готую з Appetite AI — AI-помічник з рецептів у Telegram!\n\nТобі тиждень Premium безкоштовно при першому запуску 👇",
+    favoritesTitle: "Обране",
+    favoritesEmpty: "У тебе ще немає обраних рецептів",
+    favoritesEmptyDesc: "Збережи той що сподобався — зірочка ⭐ у правому верхньому куті картки",
+    favoritesBackBtn: "← Назад",
+    favoritesLimitMsg: "Досягнуто ліміт 100 рецептів. Видали старі з Обраного",
+    addedToFavorites: "Додано до обраного ⭐",
+    removedFromFavorites: "Видалено з обраного",
+    viralCTA: "👇 Спробуй сам:",
   },
   en: {
     title: "Appetite AI",
@@ -506,7 +608,7 @@ function FeedbackButton({ t }) {
   );
 }
 
-function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClear, showClearWhenTyping }) {
+function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClear, showClearWhenTyping, clearLabel }) {
   const inputRef = useRef(null);
   const hasText = value.trim().length > 0;
   const showClear = confirmed || (showClearWhenTyping && hasText && !confirmed);
@@ -544,7 +646,7 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
         <button onMouseDown={e => e.preventDefault()} onClick={() => { onClear(); inputRef.current?.blur(); }}
           style={{ background: "none", border: "none", color: "#64748b",
             fontSize: 12, cursor: "pointer", flexShrink: 0, padding: "0 2px", whiteSpace: "nowrap" }}>
-          очистить
+          {clearLabel || "очистить"}
         </button>
       )}
     </div>
@@ -613,16 +715,19 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
 }
 
 export default function App() {
+  // PATCH 9: автодетект с украинской отдельной веткой
   const [lang, setLang] = useState(() => {
     try {
       const saved = localStorage.getItem(LANG_KEY);
-      if (saved === "ru" || saved === "en") return saved;
+      if (saved === "ru" || saved === "en" || saved === "uk") return saved;
     } catch { /* */ }
     const tgLang = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
-    if (tgLang === "en") return "en";
-    if (tgLang && SLAVIC_LANGS.includes(tgLang)) return "ru";
-    if (tgLang) return "en";
-    return "ru";
+    if (tgLang === "uk") return "uk";                            // украинцы → UK
+    if (tgLang === "en") return "en";                            // англоговорящие → EN
+    if (tgLang && RU_FALLBACK_LANGS.includes(tgLang)) return "ru"; // остальные славянские → RU
+    if (tgLang === "ru") return "ru";                            // русский → RU
+    if (tgLang) return "en";                                     // все остальные → EN
+    return "ru";                                                 // нет языка → RU (фолбэк)
   });
 
   const [toast, setToast] = useState(null);
@@ -698,6 +803,9 @@ export default function App() {
 
   const t = DATA[lang];
 
+  // PATCH 9: лейбл кнопки очистить — для каждого языка свой
+  const clearLabelByLang = lang === 'uk' ? 'очистити' : lang === 'en' ? 'clear' : 'очистить';
+
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2000);
@@ -764,15 +872,25 @@ export default function App() {
     });
   };
 
+  // PATCH 9: циклический тоггл RU → UK → EN → RU
   const handleLangSwitch = () => {
     setLang(prevLang => {
-      const newLang = prevLang === "ru" ? "en" : "ru";
+      const idx = SUPPORTED_LANGS.indexOf(prevLang);
+      const nextIdx = (idx + 1) % SUPPORTED_LANGS.length;
+      const newLang = SUPPORTED_LANGS[nextIdx];
       try { localStorage.setItem(LANG_KEY, newLang); } catch { /* */ }
       return newLang;
     });
     setRecipes(null); setNoResults(false); setApiError(false); setOpenSet(new Set()); setWarning(null);
     setResultsDiets([]); setView(null);
   };
+
+  // PATCH 9: на кнопке показываем следующий язык в цикле
+  const nextLangLabel = (() => {
+    const idx = SUPPORTED_LANGS.indexOf(lang);
+    const nextIdx = (idx + 1) % SUPPORTED_LANGS.length;
+    return SUPPORTED_LANGS[nextIdx].toUpperCase();
+  })();
 
   const langRef = useRef(lang);
   langRef.current = lang;
@@ -1041,10 +1159,11 @@ export default function App() {
                 borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <ShareSVG/>
             </button>
+            {/* PATCH 9: показываем следующий язык в цикле */}
             <button onClick={handleLangSwitch}
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", fontSize: 13, fontWeight: 700, padding: "6px 12px", cursor: "pointer" }}>
-              {lang === "ru" ? "EN" : "RU"}
+              {nextLangLabel}
             </button>
           </div>
         </div>
@@ -1170,7 +1289,8 @@ export default function App() {
           <>
             <SmartField placeholder={t.dishPlaceholder} value={dish}
               onChange={handleDishChange} onConfirm={confirmDish}
-              confirmed={dishConfirmed} onClear={clearDish} showClearWhenTyping={true}/>
+              confirmed={dishConfirmed} onClear={clearDish} showClearWhenTyping={true}
+              clearLabel={clearLabelByLang}/>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 12px" }}>
               <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.05)" }}/>
@@ -1236,7 +1356,8 @@ export default function App() {
                 </div>
                 <SmartField placeholder={t.addProductPlaceholder} value={productInput}
                   onChange={handleProductChange} onConfirm={confirmProduct}
-                  confirmed={productConfirmed} onClear={clearProduct} showClearWhenTyping={false}/>
+                  confirmed={productConfirmed} onClear={clearProduct} showClearWhenTyping={false}
+                  clearLabel={clearLabelByLang}/>
               </>
             )}
 
@@ -1265,7 +1386,6 @@ export default function App() {
                     <span style={{ fontSize: 13, color: "#64748b", textAlign: "center" }}>
                       {t.calories}
                     </span>
-                    {/* FIX P8.1: убран fontWeight: 600 → стал 500, fontSize: 14 → стал 13. Оранжевый цвет сохраняем как подсветку. */}
                     <span style={{ fontSize: 13, fontWeight: 500, color: "#fb923c", whiteSpace: "nowrap" }}>
                       {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
                     </span>
