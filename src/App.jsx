@@ -9,6 +9,9 @@ const APP_LINK_SHARED = "https://t.me/appetiteai_bot?startapp=shared";
 const FAVORITES_KEY = "favorites";
 const FAVORITES_LIMIT = 100;
 const LANG_KEY = "userLang";
+// PATCH 9.1: флаг что юзер сам кликнул на кнопку переключения языка
+// Только при наличии этого флага мы доверяем сохранённому userLang
+const LANG_MANUAL_KEY = "userLangManual";
 
 // PATCH 9: украинский выделен из SLAVIC_LANGS — теперь у него отдельная ветка
 // Остальные славянские (be, kk, uz, ky, tg, tk) по-прежнему попадают в ru
@@ -16,6 +19,30 @@ const RU_FALLBACK_LANGS = ['be', 'kk', 'uz', 'ky', 'tg', 'tk'];
 
 // PATCH 9: список поддерживаемых языков для циклического тоггла
 const SUPPORTED_LANGS = ['ru', 'uk', 'en'];
+
+// PATCH 9.1: универсальная функция определения языка
+// Используется и для автодетекта при первой загрузке
+function detectLanguage() {
+  // Шаг 1: Telegram language_code
+  const tgLangRaw = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
+  const tgLang = (tgLangRaw || "").toLowerCase();
+
+  if (tgLang.startsWith("uk")) return "uk";  // uk, uk-UA, uk_UA
+  if (tgLang.startsWith("en")) return "en";  // en, en-US, en-GB
+  if (tgLang.startsWith("ru")) return "ru";  // ru, ru-RU
+  if (tgLang && RU_FALLBACK_LANGS.includes(tgLang)) return "ru";
+
+  // Шаг 2: язык системы телефона (если Telegram не дал ясного ответа)
+  const browserLangRaw = navigator.language || (navigator.languages && navigator.languages[0]) || "";
+  const browserLang = browserLangRaw.toLowerCase();
+
+  if (browserLang.startsWith("uk")) return "uk";
+  if (browserLang.startsWith("ru")) return "ru";
+  if (browserLang.startsWith("en")) return "en";
+
+  // Шаг 3: fallback на английский (нейтральный для всех)
+  return "en";
+}
 
 async function shareUniversal(text, urlForTelegram, onToast) {
   const tg = window.Telegram?.WebApp;
@@ -715,19 +742,18 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
 }
 
 export default function App() {
-  // PATCH 9: автодетект с украинской отдельной веткой
+  // PATCH 9.1: автодетект с защитой ручного выбора
+  // Уважаем сохранённый язык ТОЛЬКО если есть флаг manual (юзер сам кликнул на кнопку)
+  // Иначе всегда запускаем автодетект (Telegram → navigator.language → EN-фолбэк)
   const [lang, setLang] = useState(() => {
     try {
+      const manual = localStorage.getItem(LANG_MANUAL_KEY);
       const saved = localStorage.getItem(LANG_KEY);
-      if (saved === "ru" || saved === "en" || saved === "uk") return saved;
+      if (manual === "true" && (saved === "ru" || saved === "uk" || saved === "en")) {
+        return saved;
+      }
     } catch { /* */ }
-    const tgLang = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
-    if (tgLang === "uk") return "uk";                            // украинцы → UK
-    if (tgLang === "en") return "en";                            // англоговорящие → EN
-    if (tgLang && RU_FALLBACK_LANGS.includes(tgLang)) return "ru"; // остальные славянские → RU
-    if (tgLang === "ru") return "ru";                            // русский → RU
-    if (tgLang) return "en";                                     // все остальные → EN
-    return "ru";                                                 // нет языка → RU (фолбэк)
+    return detectLanguage();
   });
 
   const [toast, setToast] = useState(null);
@@ -873,12 +899,16 @@ export default function App() {
   };
 
   // PATCH 9: циклический тоггл RU → UK → EN → RU
+  // PATCH 9.1: при ручном клике пишем флаг userLangManual
   const handleLangSwitch = () => {
     setLang(prevLang => {
       const idx = SUPPORTED_LANGS.indexOf(prevLang);
       const nextIdx = (idx + 1) % SUPPORTED_LANGS.length;
       const newLang = SUPPORTED_LANGS[nextIdx];
-      try { localStorage.setItem(LANG_KEY, newLang); } catch { /* */ }
+      try {
+        localStorage.setItem(LANG_KEY, newLang);
+        localStorage.setItem(LANG_MANUAL_KEY, "true"); // PATCH 9.1: фиксируем ручной выбор
+      } catch { /* */ }
       return newLang;
     });
     setRecipes(null); setNoResults(false); setApiError(false); setOpenSet(new Set()); setWarning(null);
