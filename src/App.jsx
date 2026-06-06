@@ -10,29 +10,27 @@ const FAVORITES_KEY = "favorites";
 const FAVORITES_LIMIT = 100;
 const LANG_KEY = "userLang";
 // PATCH 9.1: флаг что юзер сам кликнул на кнопку переключения языка
-// Только при наличии этого флага мы доверяем сохранённому userLang
 const LANG_MANUAL_KEY = "userLangManual";
 
-// PATCH 9: украинский выделен из SLAVIC_LANGS — теперь у него отдельная ветка
-// Остальные славянские (be, kk, uz, ky, tg, tk) по-прежнему попадают в ru
+// PATCH 10: показывать реф-блок «Пригласи друга». Сейчас false (выключено до запуска
+// монетизации). Поставить true когда премиум станет платным.
+const SHOW_REFERRAL_BLOCK = false;
+
 const RU_FALLBACK_LANGS = ['be', 'kk', 'uz', 'ky', 'tg', 'tk'];
 
-// PATCH 9: список поддерживаемых языков для циклического тоггла
-const SUPPORTED_LANGS = ['ru', 'uk', 'en'];
+// PATCH 10: порядок цикла языков теперь RU → EN → UK (английский вторым)
+const SUPPORTED_LANGS = ['ru', 'en', 'uk'];
 
 // PATCH 9.1: универсальная функция определения языка
-// Используется и для автодетекта при первой загрузке
 function detectLanguage() {
-  // Шаг 1: Telegram language_code
   const tgLangRaw = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
   const tgLang = (tgLangRaw || "").toLowerCase();
 
-  if (tgLang.startsWith("uk")) return "uk";  // uk, uk-UA, uk_UA
-  if (tgLang.startsWith("en")) return "en";  // en, en-US, en-GB
-  if (tgLang.startsWith("ru")) return "ru";  // ru, ru-RU
+  if (tgLang.startsWith("uk")) return "uk";
+  if (tgLang.startsWith("en")) return "en";
+  if (tgLang.startsWith("ru")) return "ru";
   if (tgLang && RU_FALLBACK_LANGS.includes(tgLang)) return "ru";
 
-  // Шаг 2: язык системы телефона (если Telegram не дал ясного ответа)
   const browserLangRaw = navigator.language || (navigator.languages && navigator.languages[0]) || "";
   const browserLang = browserLangRaw.toLowerCase();
 
@@ -40,7 +38,6 @@ function detectLanguage() {
   if (browserLang.startsWith("ru")) return "ru";
   if (browserLang.startsWith("en")) return "en";
 
-  // Шаг 3: fallback на английский (нейтральный для всех)
   return "en";
 }
 
@@ -115,29 +112,31 @@ const DATA = {
       other:    ["Оливковое масло","Соевый соус","Томатная паста","Грибы","Фасоль","Мёд","Горчица","Уксус","Соль","Перец чёрный"],
     },
     addProductPlaceholder: "Добавить продукт...",
-    btn: "🔍 Что приготовить?",
+    btn: "Что приготовить?",
     loading: "Придумываю рецепты",
     loadingMore: "Ищу ещё",
     clearAll: "очистить всё",
     selected: "выбрано",
     results: "Варианты блюд",
-    back: "← К фильтрам",
-    toMyRecipes: "К моим рецептам →",
-    showMore: "🔍 Придумать ещё",
+    back: "К фильтрам",
+    toMyRecipes: "К моим рецептам",
+    showMore: "Придумать ещё",
     kcal: "ккал",
-    kcalPer: "ккал/порция",
+    kcalPer: "ккал / порция",
+    perServing: "/ порция",
+    gramShort: "г",
     diff: { easy: "Легко", medium: "Средне", hard: "Сложно" },
     howto: "Как готовить",
     ingredientsLabel: "Ингредиенты",
-    macrosLabel: "БЖУ на 100г",
+    macrosLabel: "БЖУ на 100 г",
     protein: "Белки",
     fat: "Жиры",
-    carbs: "Углеводы",
+    carbs: "Углев.",
     share: "Поделиться",
-    shopList: "📋 Список покупок",
+    shopList: "Список",
     orProducts: "или выберите продукты",
-    calories: "Калории на порцию",
-    cookTime: "Время готовки",
+    calories: "Калории",
+    cookTime: "Время",
     difficulty: "Сложность",
     diet: "Диета",
     filters: "Фильтры",
@@ -147,7 +146,7 @@ const DATA = {
     calAny: "Любые",
     noResults: "Рецепт не найден",
     noResultsDesc: "С такой комбинацией фильтров рецептов нет. Попробуй расширить диапазон калорий, изменить сложность или убрать диетические ограничения.",
-    changeParams: "← Изменить параметры",
+    changeParams: "Изменить параметры",
     errorTitle: "Что-то пошло не так",
     errorDesc: "Не удалось получить рецепты. Попробуй ещё раз через несколько секунд.",
     retry: "Попробовать снова",
@@ -176,13 +175,12 @@ const DATA = {
     favoritesTitle: "Избранное",
     favoritesEmpty: "У тебя пока нет избранных рецептов",
     favoritesEmptyDesc: "Сохрани понравившийся — звёздочка ⭐ в правом верхнем углу карточки",
-    favoritesBackBtn: "← Назад",
+    favoritesBackBtn: "Назад",
     favoritesLimitMsg: "Достигнут лимит 100 рецептов. Удали старые из Избранного",
     addedToFavorites: "Добавлено в избранное ⭐",
     removedFromFavorites: "Удалено из избранного",
     viralCTA: "👇 Попробуй сам:",
   },
-  // PATCH 9: украинская локализация (минимальная адаптация - те же продукты)
   uk: {
     title: "Appetite AI",
     subtitle: "Готуй без пошуку",
@@ -212,29 +210,31 @@ const DATA = {
       other:    ["Оливкова олія","Соєвий соус","Томатна паста","Гриби","Квасоля","Мед","Гірчиця","Оцет","Сіль","Чорний перець"],
     },
     addProductPlaceholder: "Додати продукт...",
-    btn: "🔍 Що приготувати?",
+    btn: "Що приготувати?",
     loading: "Придумую рецепти",
     loadingMore: "Шукаю ще",
     clearAll: "очистити все",
     selected: "обрано",
     results: "Варіанти страв",
-    back: "← До фільтрів",
-    toMyRecipes: "До моїх рецептів →",
-    showMore: "🔍 Придумати ще",
+    back: "До фільтрів",
+    toMyRecipes: "До моїх рецептів",
+    showMore: "Придумати ще",
     kcal: "ккал",
-    kcalPer: "ккал/порція",
+    kcalPer: "ккал / порція",
+    perServing: "/ порція",
+    gramShort: "г",
     diff: { easy: "Легко", medium: "Середньо", hard: "Складно" },
     howto: "Як готувати",
     ingredientsLabel: "Інгредієнти",
-    macrosLabel: "БЖВ на 100г",
+    macrosLabel: "БЖВ на 100 г",
     protein: "Білки",
     fat: "Жири",
-    carbs: "Вуглеводи",
+    carbs: "Вуглев.",
     share: "Поділитися",
-    shopList: "📋 Список покупок",
+    shopList: "Список",
     orProducts: "або оберіть продукти",
-    calories: "Калорії на порцію",
-    cookTime: "Час приготування",
+    calories: "Калорії",
+    cookTime: "Час",
     difficulty: "Складність",
     diet: "Дієта",
     filters: "Фільтри",
@@ -244,7 +244,7 @@ const DATA = {
     calAny: "Будь-які",
     noResults: "Рецепт не знайдено",
     noResultsDesc: "З такою комбінацією фільтрів рецептів немає. Спробуй розширити діапазон калорій, змінити складність або прибрати дієтичні обмеження.",
-    changeParams: "← Змінити параметри",
+    changeParams: "Змінити параметри",
     errorTitle: "Щось пішло не так",
     errorDesc: "Не вдалося отримати рецепти. Спробуй ще раз через кілька секунд.",
     retry: "Спробувати ще раз",
@@ -273,7 +273,7 @@ const DATA = {
     favoritesTitle: "Обране",
     favoritesEmpty: "У тебе ще немає обраних рецептів",
     favoritesEmptyDesc: "Збережи той що сподобався — зірочка ⭐ у правому верхньому куті картки",
-    favoritesBackBtn: "← Назад",
+    favoritesBackBtn: "Назад",
     favoritesLimitMsg: "Досягнуто ліміт 100 рецептів. Видали старі з Обраного",
     addedToFavorites: "Додано до обраного ⭐",
     removedFromFavorites: "Видалено з обраного",
@@ -308,29 +308,31 @@ const DATA = {
       other:    ["Olive oil","Soy sauce","Tomato paste","Mushrooms","Beans","Honey","Mustard","Vinegar","Salt","Black pepper"],
     },
     addProductPlaceholder: "Add ingredient...",
-    btn: "🔍 What can I cook?",
+    btn: "What can I cook?",
     loading: "Finding recipes",
     loadingMore: "Finding more",
     clearAll: "clear all",
     selected: "selected",
     results: "Recipe ideas",
-    back: "← To filters",
-    toMyRecipes: "To my recipes →",
-    showMore: "🔍 Create more",
+    back: "To filters",
+    toMyRecipes: "To my recipes",
+    showMore: "Create more",
     kcal: "kcal",
-    kcalPer: "kcal/serving",
+    kcalPer: "kcal / serving",
+    perServing: "/ serving",
+    gramShort: "g",
     diff: { easy: "Easy", medium: "Medium", hard: "Hard" },
     howto: "How to cook",
     ingredientsLabel: "Ingredients",
-    macrosLabel: "Macros per 100g",
+    macrosLabel: "Macros per 100 g",
     protein: "Protein",
     fat: "Fat",
     carbs: "Carbs",
     share: "Share",
-    shopList: "📋 Shopping list",
+    shopList: "List",
     orProducts: "or pick ingredients",
-    calories: "Calories per serving",
-    cookTime: "Cooking time",
+    calories: "Calories",
+    cookTime: "Time",
     difficulty: "Difficulty",
     diet: "Diet",
     filters: "Filters",
@@ -340,7 +342,7 @@ const DATA = {
     calAny: "Any",
     noResults: "No recipes found",
     noResultsDesc: "No recipes match your filters. Try widening the calorie range, changing difficulty, or removing diet restrictions.",
-    changeParams: "← Change parameters",
+    changeParams: "Change parameters",
     errorTitle: "Something went wrong",
     errorDesc: "Couldn't get recipes. Please try again in a few seconds.",
     retry: "Try again",
@@ -369,7 +371,7 @@ const DATA = {
     favoritesTitle: "Favorites",
     favoritesEmpty: "You don't have any saved recipes yet",
     favoritesEmptyDesc: "Save what you like — star ⭐ in the top right corner of the card",
-    favoritesBackBtn: "← Back",
+    favoritesBackBtn: "Back",
     favoritesLimitMsg: "Limit of 100 recipes reached. Remove old ones from Favorites",
     addedToFavorites: "Added to favorites ⭐",
     removedFromFavorites: "Removed from favorites",
@@ -378,12 +380,13 @@ const DATA = {
 };
 
 function buildRecipeText(r, t) {
+  const g = t.gramShort;
   let txt = `${r.emoji} ${r.name}\n`;
   txt += `⏱ ${r.time} • ${t.diff[r.difficulty] || r.difficulty}`;
   if (r.calories) txt += ` • ~${r.calories} ${t.kcalPer}`;
   txt += `\n\n🛒 ${t.ingredientsLabel}:\n${r.ingredients.join('\n')}`;
   if (r.protein != null && r.fat != null && r.carbs != null) {
-    txt += `\n\n${t.macrosLabel}: ${t.protein} ${r.protein}г • ${t.fat} ${r.fat}г • ${t.carbs} ${r.carbs}г`;
+    txt += `\n\n${t.macrosLabel}: ${t.protein} ${r.protein}${g} • ${t.fat} ${r.fat}${g} • ${t.carbs} ${r.carbs}${g}`;
   }
   txt += `\n\n👨‍🍳 ${t.howto}:\n${r.steps.map((s, i) => `${i+1}. ${s}`).join('\n')}`;
   txt += `\n\n${t.viralCTA}\n${APP_LINK_SHARED}`;
@@ -394,6 +397,57 @@ function recipeId(r) {
   if (!r) return "";
   const ing = (r.ingredients || []).slice(0, 3).join("|");
   return `${r.name}::${ing}`;
+}
+
+// ─── PATCH 10: инлайн SVG-иконки (без внешних зависимостей) ──────────────────
+function Icon({ name, size = 16, color = "currentColor", style }) {
+  const sw = 1.8;
+  const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none",
+    stroke: color, strokeWidth: sw, strokeLinecap: "round", strokeLinejoin: "round", style };
+  switch (name) {
+    case "clock":
+      return (<svg {...common}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>);
+    case "flame":
+      return (<svg {...common}><path d="M12 3c0 4-4 5-4 9a4 4 0 0 0 8 0c0-2-1-3-1-3 0 1.5-1 2-1 2 .5-3-2-5-2-8z"/></svg>);
+    case "check":
+      return (<svg {...common}><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>);
+    case "search":
+      return (<svg {...common}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>);
+    case "plus":
+      return (<svg {...common}><path d="M12 5v14M5 12h14"/></svg>);
+    case "x":
+      return (<svg {...common}><path d="M6 6l12 12M18 6L6 18"/></svg>);
+    case "arrow-left":
+      return (<svg {...common}><path d="M19 12H5M11 18l-6-6 6-6"/></svg>);
+    case "arrow-right":
+      return (<svg {...common}><path d="M5 12h14M13 6l6 6-6 6"/></svg>);
+    case "chevron-up":
+      return (<svg {...common}><path d="M6 15l6-6 6 6"/></svg>);
+    case "chevron-down":
+      return (<svg {...common}><path d="M6 9l6 6 6-6"/></svg>);
+    case "sliders":
+      return (<svg {...common}><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h7M15 18h5"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg>);
+    case "chart-bar":
+      return (<svg {...common}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>);
+    case "leaf":
+      return (<svg {...common}><path d="M5 19C5 11 11 5 19 5c0 8-6 14-14 14z"/><path d="M5 19c3-5 6-7 10-9"/></svg>);
+    case "basket":
+      return (<svg {...common}><path d="M5 9l2-5M19 9l-2-5M3 9h18l-1.5 9.5a2 2 0 0 1-2 1.5H6.5a2 2 0 0 1-2-1.5L3 9z"/></svg>);
+    case "pie":
+      return (<svg {...common}><path d="M12 3v9l6 6"/><circle cx="12" cy="12" r="9"/></svg>);
+    case "list":
+      return (<svg {...common}><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>);
+    case "share":
+      return (<svg {...common}><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6"/></svg>);
+    case "checklist":
+      return (<svg {...common}><path d="M11 6h9M11 12h9M11 18h9"/><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17"/></svg>);
+    case "sparkles":
+      return (<svg {...common}><path d="M12 4l1.5 4.5L18 10l-4.5 1.5L12 16l-1.5-4.5L6 10l4.5-1.5z"/><path d="M18 4v3M19.5 5.5h-3"/></svg>);
+    case "chat":
+      return (<svg {...common}><path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"/></svg>);
+    default:
+      return null;
+  }
 }
 
 function CookingLoader({ text }) {
@@ -477,28 +531,6 @@ function PanLogo({ onClick }) {
   );
 }
 
-function ShareSVG({ color = "#64748b" }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 12 12" fill="none"
-      stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="10" cy="2" r="1.3"/>
-      <circle cx="10" cy="10" r="1.3"/>
-      <circle cx="2" cy="6" r="1.3"/>
-      <line x1="3.2" y1="5.4" x2="8.8" y2="2.6"/>
-      <line x1="3.2" y1="6.6" x2="8.8" y2="9.4"/>
-    </svg>
-  );
-}
-
-function ChatSVG() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-      stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7 1C3.7 1 1 3.4 1 6.4c0 1.5.6 2.8 1.7 3.8L2 13l2.9-1.3C5.5 11.9 6.2 12 7 12c3.3 0 6-2.4 6-5.5S10.3 1 7 1z"/>
-    </svg>
-  );
-}
-
 function StarIcon({ filled, size = 20 }) {
   if (filled) {
     return (
@@ -576,7 +608,7 @@ function FeedbackButton({ t }) {
         padding: "12px 16px", cursor: "pointer", marginTop: 8,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
       }}>
-        <ChatSVG/>
+        <Icon name="chat" size={14} color="#475569"/>
         {t.feedbackBtn}
       </button>
 
@@ -657,7 +689,9 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
       marginBottom: 12, boxSizing: "border-box",
       overflow: "hidden", minWidth: 0,
     }}>
-      {confirmed && <span style={{ color: "#fb923c", fontSize: 14, flexShrink: 0 }}>✓</span>}
+      {confirmed
+        ? <span style={{ color: "#fb923c", fontSize: 14, flexShrink: 0 }}>✓</span>
+        : <Icon name="search" size={15} color="#475569" style={{ flexShrink: 0 }}/>}
       <input
         ref={inputRef}
         style={{ flex: 1, background: "none", border: "none", outline: "none", fontSize: 16,
@@ -742,9 +776,6 @@ function DualSlider({ min, max, valMin, valMax, onChange, disabled }) {
 }
 
 export default function App() {
-  // PATCH 9.1: автодетект с защитой ручного выбора
-  // Уважаем сохранённый язык ТОЛЬКО если есть флаг manual (юзер сам кликнул на кнопку)
-  // Иначе всегда запускаем автодетект (Telegram → navigator.language → EN-фолбэк)
   const [lang, setLang] = useState(() => {
     try {
       const manual = localStorage.getItem(LANG_MANUAL_KEY);
@@ -757,7 +788,6 @@ export default function App() {
   });
 
   const [toast, setToast] = useState(null);
-  const [user] = useState(() => ({ isPremium: true }));
 
   const [referrals] = useState(() => {
     try {
@@ -787,7 +817,8 @@ export default function App() {
   const [productInput, setProductInput] = useState("");
   const [productConfirmed, setProductConfirmed] = useState(false);
 
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  // PATCH 10: фильтры свёрнуты по умолчанию
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [calMin, setCalMin] = useState(100);
   const [calMax, setCalMax] = useState(500);
   const [calAny, setCalAny] = useState(true);
@@ -828,8 +859,8 @@ export default function App() {
   }, [favorites]);
 
   const t = DATA[lang];
+  const g = t.gramShort;
 
-  // PATCH 9: лейбл кнопки очистить — для каждого языка свой
   const clearLabelByLang = lang === 'uk' ? 'очистити' : lang === 'en' ? 'clear' : 'очистить';
 
   const showToast = (msg) => {
@@ -898,8 +929,7 @@ export default function App() {
     });
   };
 
-  // PATCH 9: циклический тоггл RU → UK → EN → RU
-  // PATCH 9.1: при ручном клике пишем флаг userLangManual
+  // PATCH 10: цикл RU → EN → UK; при ручном клике пишем флаг
   const handleLangSwitch = () => {
     setLang(prevLang => {
       const idx = SUPPORTED_LANGS.indexOf(prevLang);
@@ -907,7 +937,7 @@ export default function App() {
       const newLang = SUPPORTED_LANGS[nextIdx];
       try {
         localStorage.setItem(LANG_KEY, newLang);
-        localStorage.setItem(LANG_MANUAL_KEY, "true"); // PATCH 9.1: фиксируем ручной выбор
+        localStorage.setItem(LANG_MANUAL_KEY, "true");
       } catch { /* */ }
       return newLang;
     });
@@ -915,7 +945,6 @@ export default function App() {
     setResultsDiets([]); setView(null);
   };
 
-  // PATCH 9: на кнопке показываем следующий язык в цикле
   const nextLangLabel = (() => {
     const idx = SUPPORTED_LANGS.indexOf(lang);
     const nextIdx = (idx + 1) % SUPPORTED_LANGS.length;
@@ -963,7 +992,7 @@ export default function App() {
       }
     } catch { setApiError(true); }
     setLoading(false);
-  }, [dish, dishConfirmed, selected, calMin, calMax, calAny, timeIdx, diffIdx, activeDiets, lang, buildBody]);
+  }, [dish, dishConfirmed, selected, calMin, calMax, calAny, timeIdx, diffIdx, activeDiets, buildBody]);
 
   const showMore = useCallback(async () => {
     setLoadingMore(true);
@@ -1049,98 +1078,134 @@ export default function App() {
     borderRadius: 8, color: active ? "#fb923c" : "#64748b",
     fontSize: 14, padding: "6px 12px", cursor: "pointer",
   });
+  // PATCH 10: единый стиль секционного заголовка внутри карточки
+  const sSectionLabel = { fontSize: 10, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase" };
 
+  // PATCH 10: перекомпонованная карточка рецепта
   const renderRecipeCard = (r, i, openState, toggleHandler) => {
     const isOpen = openState.has(i);
     const fav = isFavorite(r);
     return (
-      <div key={i} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+      <div key={i} style={{ background: "#13161c", border: "1px solid rgba(255,255,255,0.09)",
         borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
+
+        {/* Шапка — идентична в свёрнутом и развёрнутом */}
         <div onClick={() => toggleHandler(i)}
-          style={{ display: "flex", alignItems: "center", gap: 12, padding: "15px 16px", cursor: "pointer" }}>
-          <span style={{ fontSize: 30, flexShrink: 0 }}>{r.emoji}</span>
+          style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 14px", cursor: "pointer" }}>
+          <span style={{ fontSize: 28, flexShrink: 0, lineHeight: 1.1 }}>{r.emoji}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "#f1f5f9", marginBottom: 6, textAlign: "left" }}>{r.name}</div>
-            <div style={{ fontSize: 13, color: "#64748b", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              ⏱ {r.time}
-              <span style={{ color: "#4ade80", marginLeft: 8 }}>● {t.diff[r.difficulty] || r.difficulty}</span>
-              {r.calories && <span style={{ color: "#fb923c", marginLeft: 8 }}>● ~{r.calories} {t.kcalPer}</span>}
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#f8fafc", lineHeight: 1.25, marginBottom: 7, textAlign: "left" }}>{r.name}</div>
+            <div style={{ display: "flex", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, color: "#94a3b8", display: "flex", alignItems: "center", gap: 4 }}>
+                <Icon name="clock" size={12} color="#94a3b8"/> {r.time}
+              </span>
+              <span style={{ fontSize: 11, color: "#4ade80", display: "flex", alignItems: "center", gap: 4 }}>
+                <Icon name="check" size={12} color="#4ade80"/> {t.diff[r.difficulty] || r.difficulty}
+              </span>
             </div>
+            {r.calories && (
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                <span style={{ fontSize: 11, color: "#fb923c", display: "flex", alignItems: "center", gap: 4 }}>
+                  <Icon name="flame" size={12} color="#fb923c"/> {r.calories} {t.kcal}
+                </span>
+                <span style={{ fontSize: 9.5, color: "#64748b" }}>{t.perServing}</span>
+              </div>
+            )}
           </div>
-          <button
-            onClick={(e) => toggleFavorite(r, e)}
-            onMouseDown={(e) => e.stopPropagation()}
-            style={{
-              background: "none", border: "none", padding: 4, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
-            }}
-            aria-label={fav ? "Remove from favorites" : "Add to favorites"}
-          >
-            <StarIcon filled={fav} size={20}/>
-          </button>
-          <span style={{ color: "#64748b", fontSize: 12, flexShrink: 0, marginLeft: 4 }}>{isOpen ? "▲" : "▼"}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            <button
+              onClick={(e) => toggleFavorite(r, e)}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: fav ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.04)",
+                border: fav ? "1px solid rgba(251,191,36,0.45)" : "1px solid rgba(255,255,255,0.08)",
+                boxShadow: fav ? "0 0 8px rgba(251,191,36,0.25)" : "none",
+                padding: 0, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+              aria-label={fav ? "Remove from favorites" : "Add to favorites"}
+            >
+              <StarIcon filled={fav} size={15}/>
+            </button>
+            <span style={{ color: isOpen ? "#fb923c" : "#64748b", display: "flex", alignItems: "center" }}>
+              <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={16} color={isOpen ? "#fb923c" : "#64748b"}/>
+            </span>
+          </div>
         </div>
+
         {isOpen && (
-          <div style={{ padding: "14px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+          <div style={{ padding: "0 14px 16px" }}>
+            <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 14 }}/>
+
+            {/* Ингредиенты списком */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <Icon name="basket" size={14} color="#64748b"/>
+              <span style={sSectionLabel}>{t.ingredientsLabel}</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", marginBottom: 18 }}>
               {r.ingredients.map((ing, j) => (
-                <span key={j} style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)",
-                  borderRadius: 8, color: "#6ee7b7", fontSize: 13, padding: "4px 10px" }}>{ing}</span>
+                <div key={j} style={{
+                  padding: "9px 2px",
+                  borderBottom: j < r.ingredients.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                  fontSize: 12, color: "#cbd5e1", textAlign: "left",
+                }}>{ing}</div>
               ))}
             </div>
 
+            {/* БЖУ — три ровные ячейки одного цвета */}
             {(r.protein != null && r.fat != null && r.carbs != null) && (
               <>
-                <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-                  {t.macrosLabel}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                  <Icon name="pie" size={14} color="#64748b"/>
+                  <span style={sSectionLabel}>{t.macrosLabel}</span>
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-                  <span style={{
-                    background: "rgba(16,185,129,0.1)",
-                    border: "1px solid rgba(16,185,129,0.25)",
-                    borderRadius: 8, color: "#6ee7b7",
-                    fontSize: 13, padding: "4px 10px",
-                  }}>🥩 {t.protein} {r.protein}г</span>
-                  <span style={{
-                    background: "rgba(234,88,12,0.12)",
-                    border: "1px solid rgba(234,88,12,0.3)",
-                    borderRadius: 8, color: "#fb923c",
-                    fontSize: 13, padding: "4px 10px",
-                  }}>🥑 {t.fat} {r.fat}г</span>
-                  <span style={{
-                    background: "rgba(59,130,246,0.1)",
-                    border: "1px solid rgba(59,130,246,0.3)",
-                    borderRadius: 8, color: "#93c5fd",
-                    fontSize: 13, padding: "4px 10px",
-                  }}>🌾 {t.carbs} {r.carbs}г</span>
+                <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
+                  <span style={{ flex: 1, textAlign: "center", background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#cbd5e1",
+                    fontSize: 11, padding: "7px 4px" }}>{t.protein} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.protein} {g}</span></span>
+                  <span style={{ flex: 1, textAlign: "center", background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#cbd5e1",
+                    fontSize: 11, padding: "7px 4px" }}>{t.fat} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.fat} {g}</span></span>
+                  <span style={{ flex: 1, textAlign: "center", background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#cbd5e1",
+                    fontSize: 11, padding: "7px 4px" }}>{t.carbs} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.carbs} {g}</span></span>
                 </div>
               </>
             )}
 
-            <div style={{ fontSize: 11, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>{t.howto}</div>
-            {r.steps.map((step, j) => (
-              <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
-                <span style={{ background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.3)",
-                  borderRadius: "50%", color: "#fb923c", fontSize: 12, fontWeight: 700,
-                  minWidth: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {j + 1}
-                </span>
-                <span style={{ fontSize: 14, color: "#94a3b8", lineHeight: 1.5, textAlign: "left" }}>{step}</span>
-              </div>
-            ))}
-            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            {/* Шаги */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+              <Icon name="list" size={14} color="#64748b"/>
+              <span style={sSectionLabel}>{t.howto}</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 13, marginBottom: 18 }}>
+              {r.steps.map((step, j) => (
+                <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div style={{ width: 22, height: 22, borderRadius: "50%",
+                    background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.4)",
+                    color: "#fb923c", fontSize: 11, fontWeight: 600,
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {j + 1}
+                  </div>
+                  <span style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5, textAlign: "left" }}>{step}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Кнопки */}
+            <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => handleShare(r)}
-                style={{ flex: 1, background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.4)",
-                  borderRadius: 10, color: "#fb923c", fontSize: 13, fontWeight: 600, padding: "10px",
+                style={{ flex: 1, background: "rgba(234,88,12,0.14)", border: "1px solid rgba(234,88,12,0.4)",
+                  borderRadius: 12, color: "#fb923c", fontSize: 12, fontWeight: 500, padding: "11px",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                <ShareSVG color="#fb923c"/> {t.share}
+                <Icon name="share" size={15} color="#fb923c"/> {t.share}
               </button>
               <button onClick={() => handleShopList(r, i)}
-                style={{ flex: 1, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)",
-                  borderRadius: 10, color: "#6ee7b7", fontSize: 13, padding: "10px",
+                style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 12, color: copiedIdx === i ? "#6ee7b7" : "#cbd5e1", fontSize: 12, fontWeight: 500, padding: "11px",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                {copiedIdx === i ? "✓ " + t.copiedMsg : t.shopList}
+                {copiedIdx === i ? "✓ " + t.copiedMsg : (<><Icon name="checklist" size={15} color="#cbd5e1"/> {t.shopList}</>)}
               </button>
             </div>
           </div>
@@ -1175,21 +1240,19 @@ export default function App() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            {/* PATCH 10: звезда в хедере — горит без счётчика когда есть избранное */}
             <button onClick={goToFavorites}
               style={{ background: favorites.length > 0 ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.06)",
                 border: favorites.length > 0 ? "1px solid rgba(251,191,36,0.35)" : "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, padding: "6px 10px", cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 4, color: "#fbbf24",
-                fontSize: 12, fontWeight: 700 }}>
-              <StarIcon filled={favorites.length > 0} size={14}/>
-              {favorites.length > 0 && <span>{favorites.length}</span>}
+                display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <StarIcon filled={favorites.length > 0} size={15}/>
             </button>
             <button onClick={handleHeaderShare}
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
-              <ShareSVG/>
+              <Icon name="share" size={14} color="#64748b"/>
             </button>
-            {/* PATCH 9: показываем следующий язык в цикле */}
             <button onClick={handleLangSwitch}
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", fontSize: 13, fontWeight: 700, padding: "6px 12px", cursor: "pointer" }}>
@@ -1212,9 +1275,10 @@ export default function App() {
                 <div style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, marginBottom: 18, padding: "0 8px" }}>{t.favoritesEmptyDesc}</div>
                 <button onClick={backFromFavorites} style={{
                   background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
-                  borderRadius: 50, color: "#fb923c", fontSize: 14, fontWeight: 600,
-                  padding: "12px 24px", cursor: "pointer" }}>
-                  {t.favoritesBackBtn}
+                  borderRadius: 12, color: "#fb923c", fontSize: 14, fontWeight: 600,
+                  padding: "12px 24px", cursor: "pointer",
+                  display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <Icon name="arrow-left" size={15} color="#fb923c"/> {t.favoritesBackBtn}
                 </button>
               </div>
             ) : (
@@ -1222,8 +1286,9 @@ export default function App() {
                 {favorites.map((r, i) => renderRecipeCard(r, i, favOpenSet, handleToggleFavRecipe))}
                 <button onClick={backFromFavorites}
                   style={{ width: "100%", background: "none", border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 50, color: "#64748b", fontSize: 14, padding: "12px 16px", cursor: "pointer", marginTop: 8 }}>
-                  {t.favoritesBackBtn}
+                    borderRadius: 12, color: "#64748b", fontSize: 14, padding: "12px 16px", cursor: "pointer", marginTop: 8,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  <Icon name="arrow-left" size={15} color="#64748b"/> {t.favoritesBackBtn}
                 </button>
               </>
             )}
@@ -1233,8 +1298,12 @@ export default function App() {
 
         ) : isResultScreen ? (
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1,
-              textTransform: "uppercase", marginBottom: 14 }}>{t.results}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <button onClick={backToFilters} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center" }}>
+                <Icon name="arrow-left" size={18} color="#94a3b8"/>
+              </button>
+              <span style={{ fontSize: 16, fontWeight: 500, color: "#f8fafc" }}>{t.results}</span>
+            </div>
 
             {resultsDiets.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16, marginTop: -6 }}>
@@ -1268,8 +1337,9 @@ export default function App() {
                 <div style={{ fontSize: 17, fontWeight: 500, color: "#f1f5f9", marginBottom: 10 }}>{t.noResults}</div>
                 <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6, marginBottom: 18 }}>{t.noResultsDesc}</div>
                 <button onClick={backToFilters} style={{ background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
-                  borderRadius: 50, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "12px 24px", cursor: "pointer" }}>
-                  {t.changeParams}
+                  borderRadius: 12, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "12px 24px", cursor: "pointer",
+                  display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <Icon name="arrow-left" size={15} color="#fb923c"/> {t.changeParams}
                 </button>
               </div>
             )}
@@ -1279,7 +1349,7 @@ export default function App() {
                 <div style={{ fontSize: 40, marginBottom: 14 }}>⚠️</div>
                 <div style={{ fontSize: 17, fontWeight: 500, color: "#f1f5f9", marginBottom: 10 }}>{t.errorTitle}</div>
                 <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6, marginBottom: 18 }}>{t.errorDesc}</div>
-                <button onClick={generate} style={{ background: "#ea580c", border: "none", borderRadius: 50,
+                <button onClick={generate} style={{ background: "#ea580c", border: "none", borderRadius: 12,
                   color: "#fff", fontSize: 14, fontWeight: 600, padding: "12px 24px", cursor: "pointer" }}>
                   {t.retry}
                 </button>
@@ -1291,24 +1361,25 @@ export default function App() {
             {!loading && recipes && (
               <button onClick={showMore} disabled={loadingMore}
                 style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
-                  borderRadius: 50, color: "#fb923c", fontSize: 15, fontWeight: 600, padding: "14px 16px",
+                  borderRadius: 12, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "13px 16px",
                   cursor: loadingMore ? "wait" : "pointer", display: "flex", alignItems: "center",
-                  justifyContent: "center", gap: 6, marginTop: 6, opacity: loadingMore ? 0.7 : 1 }}>
+                  justifyContent: "center", gap: 7, marginTop: 6, opacity: loadingMore ? 0.7 : 1 }}>
                 {loadingMore ? (
                   <>{t.loadingMore}<span style={{ display: "inline-block", marginLeft: 2 }}>
                     <span style={{ animation: "dotPulse 1.4s infinite" }}>.</span>
                     <span style={{ animation: "dotPulse 1.4s infinite 0.2s" }}>.</span>
                     <span style={{ animation: "dotPulse 1.4s infinite 0.4s" }}>.</span>
                   </span></>
-                ) : t.showMore}
+                ) : (<><Icon name="sparkles" size={15} color="#fb923c"/> {t.showMore}</>)}
               </button>
             )}
 
             {!loading && (recipes || noResults || apiError) && (
               <button onClick={backToFilters}
                 style={{ width: "100%", background: "none", border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: 50, color: "#64748b", fontSize: 14, padding: "12px 16px", cursor: "pointer", marginTop: 8 }}>
-                {t.back}
+                  borderRadius: 12, color: "#64748b", fontSize: 14, padding: "12px 16px", cursor: "pointer", marginTop: 8,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <Icon name="arrow-left" size={15} color="#64748b"/> {t.back}
               </button>
             )}
 
@@ -1347,7 +1418,9 @@ export default function App() {
                         ✓ {item}
                         <button onClick={() => removeProduct(item)}
                           style={{ background: "none", border: "none", color: "#fb923c",
-                            fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0, marginLeft: 2 }}>×</button>
+                            cursor: "pointer", lineHeight: 1, padding: 0, marginLeft: 2, display: "flex", alignItems: "center" }}>
+                          <Icon name="x" size={13} color="#fb923c"/>
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -1398,8 +1471,10 @@ export default function App() {
               background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
               borderRadius: 12, padding: "13px 16px", cursor: "pointer", marginBottom: filtersOpen ? 12 : 16,
               boxSizing: "border-box" }}>
-              <span style={{ fontSize: 15, fontWeight: 600, color: "#94a3b8" }}>{t.filters}</span>
-              <span style={{ fontSize: 13, color: "#64748b" }}>{filtersOpen ? "▲" : "▼"}</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: "#94a3b8", display: "flex", alignItems: "center", gap: 7 }}>
+                <Icon name="sliders" size={15} color={filtersOpen ? "#fb923c" : "#64748b"}/> {t.filters}
+              </span>
+              <Icon name={filtersOpen ? "chevron-up" : "chevron-down"} size={14} color={filtersOpen ? "#fb923c" : "#64748b"}/>
             </button>
 
             {filtersOpen && (
@@ -1413,10 +1488,10 @@ export default function App() {
                     marginBottom: 4
                   }}>
                     <PremiumBadge label={t.premiumBadge}/>
-                    <span style={{ fontSize: 13, color: "#64748b", textAlign: "center" }}>
-                      {t.calories}
+                    <span style={{ fontSize: 13, color: "#64748b", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                      <Icon name="flame" size={13} color={calAny ? "#64748b" : "#fb923c"}/> {t.calories} <span style={{ color: "#475569", fontSize: 11 }}>{t.perServing}</span>
                     </span>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: "#fb923c", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: calAny ? "#64748b" : "#fb923c", whiteSpace: "nowrap" }}>
                       {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
                     </span>
                   </div>
@@ -1431,22 +1506,26 @@ export default function App() {
 
                 <div style={sFilterBlock}>
                   <div style={{ marginBottom: 10, textAlign: "center" }}>
-                    <span style={{ fontSize: 13, color: "#64748b" }}>{t.cookTime}</span>
+                    <span style={{ fontSize: 13, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      <Icon name="clock" size={13} color="#fb923c"/> {t.cookTime}
+                    </span>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 6 }}>
                     {t.timeChips.map((c, i) => (
-                      <button key={c} onClick={() => setTimeIdx(i)} style={sChip(timeIdx === i)}>{c}</button>
+                      <button key={c} onClick={() => setTimeIdx(i)} style={{ ...sChip(timeIdx === i), flex: 1, textAlign: "center", padding: "6px 0", fontSize: 12 }}>{c}</button>
                     ))}
                   </div>
                 </div>
 
                 <div style={sFilterBlock}>
                   <div style={{ marginBottom: 10, textAlign: "center" }}>
-                    <span style={{ fontSize: 13, color: "#64748b" }}>{t.difficulty}</span>
+                    <span style={{ fontSize: 13, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      <Icon name="chart-bar" size={13} color="#fb923c"/> {t.difficulty}
+                    </span>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 6 }}>
                     {t.diffChips.map((c, i) => (
-                      <button key={c} onClick={() => setDiffIdx(i)} style={sChip(diffIdx === i)}>{c}</button>
+                      <button key={c} onClick={() => setDiffIdx(i)} style={{ ...sChip(diffIdx === i), flex: 1, textAlign: "center", padding: "6px 0", fontSize: 12 }}>{c}</button>
                     ))}
                   </div>
                 </div>
@@ -1460,7 +1539,9 @@ export default function App() {
                     <div style={{ flex: "0 0 auto" }}>
                       <PremiumBadge label={t.premiumBadge}/>
                     </div>
-                    <span style={{ flex: 1, fontSize: 13, color: "#64748b", textAlign: "center" }}>{t.diet}</span>
+                    <span style={{ flex: 1, fontSize: 13, color: "#64748b", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                      <Icon name="leaf" size={13} color="#fb923c"/> {t.diet}
+                    </span>
                     <div style={{ flex: "0 0 auto", visibility: "hidden" }}>
                       <PremiumBadge label={t.premiumBadge}/>
                     </div>
@@ -1476,7 +1557,7 @@ export default function App() {
 
             <button onClick={generate} disabled={loading || !canGenerate} style={{
               width: "100%", background: (!canGenerate || loading) ? "rgba(234,88,12,0.4)" : "#ea580c",
-              border: "none", borderRadius: 50, color: "#fff", fontSize: 16, fontWeight: 700,
+              border: "none", borderRadius: 12, color: "#fff", fontSize: 16, fontWeight: 700,
               padding: "15px 16px", cursor: (!canGenerate || loading) ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxSizing: "border-box" }}>
               {loading ? (
@@ -1485,60 +1566,63 @@ export default function App() {
                   <span style={{ animation: "dotPulse 1.4s infinite 0.2s" }}>.</span>
                   <span style={{ animation: "dotPulse 1.4s infinite 0.4s" }}>.</span>
                 </span></>
-              ) : t.btn}
+              ) : (<><Icon name="search" size={16} color="#fff"/> {t.btn}</>)}
             </button>
 
             {hasStoredRecipes && (
               <button onClick={backToRecipes}
                 style={{ width: "100%", background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
-                  borderRadius: 50, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "11px 16px",
+                  borderRadius: 12, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "11px 16px",
                   cursor: "pointer", marginTop: 10,
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                {t.toMyRecipes}
+                {t.toMyRecipes} <Icon name="arrow-right" size={14} color="#fb923c"/>
               </button>
             )}
 
-            <div style={{
-              marginTop: 28,
-              background: "linear-gradient(135deg, rgba(234,88,12,0.08), rgba(251,191,36,0.05))",
-              border: "1px solid rgba(234,88,12,0.3)",
-              borderRadius: 14, padding: "16px 18px",
-            }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9", marginBottom: 6 }}>
-                {t.refTitle}
-              </div>
-              <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 14, lineHeight: 1.5 }}>
-                {t.refDesc}
-              </div>
-
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, color: "#64748b" }}>
-                    {t.refStatsLabel}: <strong style={{ color: "#fb923c" }}>{referrals.invitedCount} / {refTarget}</strong> {t.refToNextLabel}
-                  </span>
-                  <span style={{ fontSize: 11, color: "#fb923c", fontWeight: 600 }}>{refProgress}%</span>
-                </div>
-                <div style={{
-                  height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden",
-                }}>
-                  <div style={{
-                    width: `${refProgress}%`,
-                    height: "100%",
-                    background: "linear-gradient(90deg, #ea580c, #fbbf24)",
-                    borderRadius: 3,
-                    transition: "width 0.4s ease",
-                  }}/>
-                </div>
-              </div>
-
-              <button onClick={handleRefShare} style={{
-                width: "100%", background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.45)",
-                borderRadius: 50, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "10px 16px",
-                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            {/* PATCH 10: блок «Пригласи друга» скрыт до запуска монетизации (SHOW_REFERRAL_BLOCK) */}
+            {SHOW_REFERRAL_BLOCK && (
+              <div style={{
+                marginTop: 28,
+                background: "linear-gradient(135deg, rgba(234,88,12,0.08), rgba(251,191,36,0.05))",
+                border: "1px solid rgba(234,88,12,0.3)",
+                borderRadius: 14, padding: "16px 18px",
               }}>
-                {t.refShareBtn}
-              </button>
-            </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9", marginBottom: 6 }}>
+                  {t.refTitle}
+                </div>
+                <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 14, lineHeight: 1.5 }}>
+                  {t.refDesc}
+                </div>
+
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, color: "#64748b" }}>
+                      {t.refStatsLabel}: <strong style={{ color: "#fb923c" }}>{referrals.invitedCount} / {refTarget}</strong> {t.refToNextLabel}
+                    </span>
+                    <span style={{ fontSize: 11, color: "#fb923c", fontWeight: 600 }}>{refProgress}%</span>
+                  </div>
+                  <div style={{
+                    height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden",
+                  }}>
+                    <div style={{
+                      width: `${refProgress}%`,
+                      height: "100%",
+                      background: "linear-gradient(90deg, #ea580c, #fbbf24)",
+                      borderRadius: 3,
+                      transition: "width 0.4s ease",
+                    }}/>
+                  </div>
+                </div>
+
+                <button onClick={handleRefShare} style={{
+                  width: "100%", background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.45)",
+                  borderRadius: 12, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "10px 16px",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                }}>
+                  {t.refShareBtn}
+                </button>
+              </div>
+            )}
 
             <div style={{
               marginTop: 14,
