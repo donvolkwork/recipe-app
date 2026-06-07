@@ -12,6 +12,19 @@ const LANG_KEY = "userLang";
 // PATCH 9.1: флаг что юзер сам кликнул на кнопку переключения языка
 const LANG_MANUAL_KEY = "userLangManual";
 
+// PATCH 10.1: палитра
+// Фон — холодный синеватый. Блоки/карточки — непрозрачные (паттерн играет в "воздухе"
+// между ними, под глухими блоками не просвечивает — так читаемость лучше).
+const BG = "#0c0e15";          // основной фон
+const SURFACE = "#16181f";     // непрозрачный фон блоков/карточек/кнопок-контейнеров
+const SURFACE_HI = "#1c1f28";  // чуть светлее (поля ввода, активные подложки)
+
+// PATCH 10.1: кулинарный паттерн — повторяющаяся плитка (repeat).
+// Мелкие иконки кухни под разными углами, белые с низкой прозрачностью.
+// Один data-URI SVG 150×150, тайлится по фону. Быстро, не растягивается.
+const PATTERN_SVG = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150"><g fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.05"><g transform="translate(22,20) rotate(20)"><circle r="8"/><line x1="8" x2="15"/></g><g transform="translate(70,18) rotate(-30)"><line y1="-11" y2="11"/><path d="M-3,-11 L-3,-4 M0,-11 L0,-4 M3,-11 L3,-4"/></g><g transform="translate(118,24) rotate(40)"><path d="M-8,0 L8,0 L6,15 Q6,18 0,18 Q-6,18 -6,15Z"/></g><g transform="translate(38,58) rotate(-20)"><ellipse rx="5" ry="8"/><line y1="8" y2="16"/></g><g transform="translate(86,54) rotate(50)"><path d="M-7,-4 Q0,-13 7,-4 L5,9 Q5,13 0,13 Q-5,13 -5,9Z"/></g><g transform="translate(128,60) rotate(-40)"><circle r="8"/><line x1="0" y1="-8" x2="0" y2="-13"/></g><g transform="translate(20,96) rotate(35)"><path d="M-8,4 Q-8,-9 0,-9 Q8,-9 8,4Z"/><line x1="-12" y1="4" x2="12" y2="4"/></g><g transform="translate(68,92) rotate(-25)"><rect x="-12" y="-4" width="24" height="6" rx="3"/></g><g transform="translate(112,98) rotate(45)"><path d="M0,-11 Q5,-4 5,3 Q5,9 0,11 Q-5,9 -5,3 Q-5,-4 0,-11Z"/></g><g transform="translate(40,130) rotate(-45)"><line y1="-14" y2="14"/><path d="M-4,-14 Q0,-9 4,-14 Q0,-19 -4,-14"/></g><g transform="translate(90,128) rotate(15)"><circle r="8"/><line x1="0" y1="-8" x2="5" y2="3"/></g><g transform="translate(128,132) rotate(-30)"><path d="M-8,0 L8,0 L6,15 Q6,18 0,18 Q-6,18 -6,15Z"/></g></g></svg>`);
+const PATTERN_URL = `url("data:image/svg+xml,${PATTERN_SVG}")`;
+
 // PATCH 10: показывать реф-блок «Пригласи друга». Сейчас false (выключено до запуска
 // монетизации). Поставить true когда премиум станет платным.
 const SHOW_REFERRAL_BLOCK = false;
@@ -513,6 +526,7 @@ function CookingLoader({ text }) {
   );
 }
 
+// PATCH 10.1: лого — шапка повара (вместо сковородки). onClick-логика прежняя.
 function PanLogo({ onClick }) {
   return (
     <div onClick={onClick} style={{
@@ -520,12 +534,10 @@ function PanLogo({ onClick }) {
       display: "flex", alignItems: "center", justifyContent: "center",
       flexShrink: 0, cursor: onClick ? "pointer" : "default",
     }}>
-      <svg width="30" height="30" viewBox="0 0 36 36" fill="none">
-        <circle cx="16" cy="18" r="11" stroke="white" strokeWidth="3"/>
-        <line x1="27" y1="18" x2="35" y2="18" stroke="white" strokeWidth="3" strokeLinecap="round"/>
-        <circle cx="12" cy="14" r="2.5" fill="white"/>
-        <circle cx="19" cy="21" r="2" fill="white" opacity="0.8"/>
-        <circle cx="12" cy="22" r="1.5" fill="white" opacity="0.6"/>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+        stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 18.7V13c-1.7-.4-3-1.9-3-3.8C3 7 5 5 7.5 5c.5 0 1 .1 1.4.3C9.6 3.9 10.7 3 12 3s2.4.9 3.1 2.3c.4-.2.9-.3 1.4-.3C19 5 21 7 21 9.2c0 1.9-1.3 3.4-3 3.8v5.7"/>
+        <path d="M6 18.7c0 .7.6 1.3 1.3 1.3h9.4c.7 0 1.3-.6 1.3-1.3"/>
       </svg>
     </div>
   );
@@ -577,7 +589,7 @@ function Toast({ message, visible }) {
   );
 }
 
-function FeedbackButton({ t }) {
+function FeedbackButton({ t, pushBottom }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [sent, setSent] = useState(false);
@@ -605,7 +617,9 @@ function FeedbackButton({ t }) {
       <button onClick={() => setOpen(true)} style={{
         width: "100%", background: "none", border: "none",
         color: "#475569", fontSize: 13,
-        padding: "12px 16px", cursor: "pointer", marginTop: 8,
+        padding: "12px 16px", cursor: "pointer",
+        marginTop: pushBottom ? "auto" : 8,
+        paddingTop: pushBottom ? 20 : 12,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
       }}>
         <Icon name="chat" size={14} color="#475569"/>
@@ -682,7 +696,7 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
   return (
     <div style={{
       width: "100%",
-      background: confirmed ? "rgba(234,88,12,0.08)" : "rgba(255,255,255,0.06)",
+      background: confirmed ? "rgba(234,88,12,0.10)" : SURFACE_HI,
       border: confirmed ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.1)",
       borderRadius: 12, padding: "10px 12px",
       display: "flex", alignItems: "center", gap: 8,
@@ -1070,55 +1084,40 @@ export default function App() {
   const refProgress = Math.min(100, Math.round((referrals.invitedCount / refTarget) * 100));
 
   const sLabel = { fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 8 };
-  const sDiv = { height: 1, background: "rgba(255,255,255,0.05)", margin: "12px 0" };
-  const sFilterBlock = { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 14px" };
+  const sDiv = { height: 1, background: "rgba(255,255,255,0.07)", margin: "12px 0" };
+  const sFilterBlock = { background: SURFACE, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "14px 14px" };
   const sChip = active => ({
-    background: active ? "rgba(234,88,12,0.12)" : "rgba(255,255,255,0.04)",
-    border: active ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.07)",
-    borderRadius: 8, color: active ? "#fb923c" : "#64748b",
+    background: active ? "rgba(234,88,12,0.15)" : SURFACE_HI,
+    border: active ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 8, color: active ? "#fb923c" : "#94a3b8",
     fontSize: 14, padding: "6px 12px", cursor: "pointer",
   });
   // PATCH 10: единый стиль секционного заголовка внутри карточки
-  const sSectionLabel = { fontSize: 10, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase" };
+  const sSectionLabel = { fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase" };
 
   // PATCH 10: перекомпонованная карточка рецепта
   const renderRecipeCard = (r, i, openState, toggleHandler) => {
     const isOpen = openState.has(i);
     const fav = isFavorite(r);
     return (
-      <div key={i} style={{ background: "#13161c", border: "1px solid rgba(255,255,255,0.09)",
+      <div key={i} style={{ background: SURFACE, border: "1px solid rgba(255,255,255,0.09)",
         borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
 
-        {/* Шапка — идентична в свёрнутом и развёрнутом */}
+        {/* Шапка: эмодзи + название во всю строку + звезда/шеврон справа.
+            Идентична в свёрнутом и развёрнутом — не прыгает. */}
         <div onClick={() => toggleHandler(i)}
-          style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 14px", cursor: "pointer" }}>
-          <span style={{ fontSize: 28, flexShrink: 0, lineHeight: 1.1 }}>{r.emoji}</span>
+          style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 14px 12px", cursor: "pointer" }}>
+          <span style={{ fontSize: 30, flexShrink: 0, lineHeight: 1 }}>{r.emoji}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#f8fafc", lineHeight: 1.25, marginBottom: 7, textAlign: "left" }}>{r.name}</div>
-            <div style={{ display: "flex", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 11, color: "#94a3b8", display: "flex", alignItems: "center", gap: 4 }}>
-                <Icon name="clock" size={12} color="#94a3b8"/> {r.time}
-              </span>
-              <span style={{ fontSize: 11, color: "#4ade80", display: "flex", alignItems: "center", gap: 4 }}>
-                <Icon name="check" size={12} color="#4ade80"/> {t.diff[r.difficulty] || r.difficulty}
-              </span>
-            </div>
-            {r.calories && (
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                <span style={{ fontSize: 11, color: "#fb923c", display: "flex", alignItems: "center", gap: 4 }}>
-                  <Icon name="flame" size={12} color="#fb923c"/> {r.calories} {t.kcal}
-                </span>
-                <span style={{ fontSize: 9.5, color: "#64748b" }}>{t.perServing}</span>
-              </div>
-            )}
+            <div style={{ fontSize: 16, fontWeight: 600, color: "#f1f5f9", lineHeight: 1.3, textAlign: "left" }}>{r.name}</div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
             <button
               onClick={(e) => toggleFavorite(r, e)}
               onMouseDown={(e) => e.stopPropagation()}
               style={{
-                width: 28, height: 28, borderRadius: 8,
-                background: fav ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.04)",
+                width: 30, height: 30, borderRadius: 8,
+                background: fav ? "rgba(251,191,36,0.12)" : SURFACE_HI,
                 border: fav ? "1px solid rgba(251,191,36,0.45)" : "1px solid rgba(255,255,255,0.08)",
                 boxShadow: fav ? "0 0 8px rgba(251,191,36,0.25)" : "none",
                 padding: 0, cursor: "pointer",
@@ -1126,17 +1125,35 @@ export default function App() {
               }}
               aria-label={fav ? "Remove from favorites" : "Add to favorites"}
             >
-              <StarIcon filled={fav} size={15}/>
+              <StarIcon filled={fav} size={16}/>
             </button>
             <span style={{ color: isOpen ? "#fb923c" : "#64748b", display: "flex", alignItems: "center" }}>
-              <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={16} color={isOpen ? "#fb923c" : "#64748b"}/>
+              <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={17} color={isOpen ? "#fb923c" : "#64748b"}/>
             </span>
           </div>
         </div>
 
+        {/* Мета-строка во всю ширину на подложке — время · сложность · ккал/порция.
+            Одинаково в свёрнутом и развёрнутом, всегда под шапкой. */}
+        <div onClick={() => toggleHandler(i)} style={{ display: "flex", justifyContent: "space-around", alignItems: "center",
+          padding: "11px 12px", borderTop: "1px solid rgba(255,255,255,0.06)",
+          background: "rgba(255,255,255,0.02)", cursor: "pointer", flexWrap: "wrap", gap: 6 }}>
+          <span style={{ fontSize: 13, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5 }}>
+            <Icon name="clock" size={14} color="#94a3b8"/> {r.time}
+          </span>
+          <span style={{ fontSize: 13, color: "#4ade80", display: "flex", alignItems: "center", gap: 5 }}>
+            <Icon name="check" size={14} color="#4ade80"/> {t.diff[r.difficulty] || r.difficulty}
+          </span>
+          {r.calories && (
+            <span style={{ fontSize: 13, color: "#fb923c", display: "flex", alignItems: "center", gap: 5 }}>
+              <Icon name="flame" size={14} color="#fb923c"/> {r.calories} {t.kcal}
+              <span style={{ fontSize: 10, color: "#64748b" }}>{t.perServing}</span>
+            </span>
+          )}
+        </div>
+
         {isOpen && (
-          <div style={{ padding: "0 14px 16px" }}>
-            <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 14 }}/>
+          <div style={{ padding: "14px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
 
             {/* Ингредиенты списком */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
@@ -1148,7 +1165,7 @@ export default function App() {
                 <div key={j} style={{
                   padding: "9px 2px",
                   borderBottom: j < r.ingredients.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                  fontSize: 12, color: "#cbd5e1", textAlign: "left",
+                  fontSize: 13, color: "#cbd5e1", textAlign: "left",
                 }}>{ing}</div>
               ))}
             </div>
@@ -1161,15 +1178,15 @@ export default function App() {
                   <span style={sSectionLabel}>{t.macrosLabel}</span>
                 </div>
                 <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
-                  <span style={{ flex: 1, textAlign: "center", background: "rgba(255,255,255,0.04)",
+                  <span style={{ flex: 1, textAlign: "center", background: SURFACE_HI,
                     border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#cbd5e1",
-                    fontSize: 11, padding: "7px 4px" }}>{t.protein} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.protein} {g}</span></span>
-                  <span style={{ flex: 1, textAlign: "center", background: "rgba(255,255,255,0.04)",
+                    fontSize: 12, padding: "7px 4px" }}>{t.protein} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.protein} {g}</span></span>
+                  <span style={{ flex: 1, textAlign: "center", background: SURFACE_HI,
                     border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#cbd5e1",
-                    fontSize: 11, padding: "7px 4px" }}>{t.fat} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.fat} {g}</span></span>
-                  <span style={{ flex: 1, textAlign: "center", background: "rgba(255,255,255,0.04)",
+                    fontSize: 12, padding: "7px 4px" }}>{t.fat} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.fat} {g}</span></span>
+                  <span style={{ flex: 1, textAlign: "center", background: SURFACE_HI,
                     border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#cbd5e1",
-                    fontSize: 11, padding: "7px 4px" }}>{t.carbs} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.carbs} {g}</span></span>
+                    fontSize: 12, padding: "7px 4px" }}>{t.carbs} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.carbs} {g}</span></span>
                 </div>
               </>
             )}
@@ -1182,13 +1199,13 @@ export default function App() {
             <div style={{ display: "flex", flexDirection: "column", gap: 13, marginBottom: 18 }}>
               {r.steps.map((step, j) => (
                 <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <div style={{ width: 22, height: 22, borderRadius: "50%",
+                  <div style={{ width: 24, height: 24, borderRadius: "50%",
                     background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.4)",
-                    color: "#fb923c", fontSize: 11, fontWeight: 600,
+                    color: "#fb923c", fontSize: 12, fontWeight: 700,
                     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     {j + 1}
                   </div>
-                  <span style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5, textAlign: "left" }}>{step}</span>
+                  <span style={{ fontSize: 14, color: "#cbd5e1", lineHeight: 1.5, textAlign: "left" }}>{step}</span>
                 </div>
               ))}
             </div>
@@ -1197,13 +1214,13 @@ export default function App() {
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => handleShare(r)}
                 style={{ flex: 1, background: "rgba(234,88,12,0.14)", border: "1px solid rgba(234,88,12,0.4)",
-                  borderRadius: 12, color: "#fb923c", fontSize: 12, fontWeight: 500, padding: "11px",
+                  borderRadius: 12, color: "#fb923c", fontSize: 13, fontWeight: 600, padding: "11px",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 <Icon name="share" size={15} color="#fb923c"/> {t.share}
               </button>
               <button onClick={() => handleShopList(r, i)}
-                style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: 12, color: copiedIdx === i ? "#6ee7b7" : "#cbd5e1", fontSize: 12, fontWeight: 500, padding: "11px",
+                style={{ flex: 1, background: SURFACE_HI, border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 12, color: copiedIdx === i ? "#6ee7b7" : "#cbd5e1", fontSize: 13, fontWeight: 600, padding: "11px",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 {copiedIdx === i ? "✓ " + t.copiedMsg : (<><Icon name="checklist" size={15} color="#cbd5e1"/> {t.shopList}</>)}
               </button>
@@ -1215,7 +1232,10 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", width: "100%", background: "#0d0f14",
+    <div style={{ minHeight: "100vh", width: "100%",
+      background: BG,
+      backgroundImage: PATTERN_URL,
+      backgroundRepeat: "repeat",
       display: "flex", justifyContent: "center", alignItems: "flex-start",
       padding: 0, margin: 0, boxSizing: "border-box",
       fontFamily: "system-ui,-apple-system,sans-serif" }}>
@@ -1224,12 +1244,14 @@ export default function App() {
 
       <div style={{
         width: "100%", maxWidth: 480, minHeight: "100vh",
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderBottom: "none",
-        padding: 22, paddingBottom: 48,
+        background: "transparent",
+        borderLeft: "1px solid rgba(255,255,255,0.05)",
+        borderRight: "1px solid rgba(255,255,255,0.05)",
+        padding: 22, paddingBottom: 28,
         boxSizing: "border-box",
+        display: "flex", flexDirection: "column",
       }}>
+
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
@@ -1242,19 +1264,19 @@ export default function App() {
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
             {/* PATCH 10: звезда в хедере — горит без счётчика когда есть избранное */}
             <button onClick={goToFavorites}
-              style={{ background: favorites.length > 0 ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.06)",
+              style={{ background: favorites.length > 0 ? "rgba(251,191,36,0.12)" : SURFACE_HI,
                 border: favorites.length > 0 ? "1px solid rgba(251,191,36,0.35)" : "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, padding: "6px 10px", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center" }}>
               <StarIcon filled={favorites.length > 0} size={15}/>
             </button>
             <button onClick={handleHeaderShare}
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
+              style={{ background: SURFACE_HI, border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <Icon name="share" size={14} color="#64748b"/>
             </button>
             <button onClick={handleLangSwitch}
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.09)",
+              style={{ background: SURFACE_HI, border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", fontSize: 13, fontWeight: 700, padding: "6px 12px", cursor: "pointer" }}>
               {nextLangLabel}
             </button>
@@ -1264,7 +1286,7 @@ export default function App() {
         <div style={sDiv}/>
 
         {isFavoritesScreen ? (
-          <div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1,
               textTransform: "uppercase", marginBottom: 14 }}>{t.favoritesTitle}</div>
 
@@ -1293,11 +1315,11 @@ export default function App() {
               </>
             )}
 
-            <FeedbackButton t={t}/>
+            <FeedbackButton t={t} pushBottom/>
           </div>
 
         ) : isResultScreen ? (
-          <div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
               <button onClick={backToFilters} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center" }}>
                 <Icon name="arrow-left" size={18} color="#94a3b8"/>
@@ -1383,11 +1405,11 @@ export default function App() {
               </button>
             )}
 
-            <FeedbackButton t={t}/>
+            <FeedbackButton t={t} pushBottom/>
           </div>
 
         ) : (
-          <>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
             <SmartField placeholder={t.dishPlaceholder} value={dish}
               onChange={handleDishChange} onConfirm={confirmDish}
               confirmed={dishConfirmed} onClear={clearDish} showClearWhenTyping={true}
@@ -1433,7 +1455,7 @@ export default function App() {
               {Object.entries(t.cats).map(([key, { label, icon }]) => (
                 <div key={key} onClick={() => handleCatClick(key)} style={{
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                  background: activeCat === key ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)",
+                  background: activeCat === key ? "rgba(234,88,12,0.15)" : SURFACE,
                   border: activeCat === key ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.07)",
                   borderRadius: 12, padding: "9px 4px", cursor: "pointer" }}>
                   <span style={{ fontSize: 20 }}>{icon}</span>
@@ -1449,7 +1471,7 @@ export default function App() {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
                   {t.items[activeCat].map(item => (
                     <button key={item} onClick={() => toggle(item)} style={{
-                      background: selected.has(item) ? "rgba(234,88,12,0.13)" : "rgba(255,255,255,0.04)",
+                      background: selected.has(item) ? "rgba(234,88,12,0.15)" : SURFACE,
                       border: selected.has(item) ? "1.5px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.08)",
                       borderRadius: 10, color: selected.has(item) ? "#fed7aa" : "#64748b",
                       fontSize: 15, padding: "8px 14px", cursor: "pointer" }}>
@@ -1466,91 +1488,77 @@ export default function App() {
 
             <div style={sDiv}/>
 
-            <button onClick={() => setFiltersOpen(o => !o)} style={{
-              width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-              background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 12, padding: "13px 16px", cursor: "pointer", marginBottom: filtersOpen ? 12 : 16,
-              boxSizing: "border-box" }}>
-              <span style={{ fontSize: 15, fontWeight: 600, color: "#94a3b8", display: "flex", alignItems: "center", gap: 7 }}>
-                <Icon name="sliders" size={15} color={filtersOpen ? "#fb923c" : "#64748b"}/> {t.filters}
-              </span>
-              <Icon name={filtersOpen ? "chevron-up" : "chevron-down"} size={14} color={filtersOpen ? "#fb923c" : "#64748b"}/>
-            </button>
+            {!filtersOpen && (
+              <button onClick={() => setFiltersOpen(true)} style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: SURFACE, border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 12, padding: "13px 16px", cursor: "pointer", marginBottom: 16,
+                boxSizing: "border-box" }}>
+                <span style={{ fontSize: 15, fontWeight: 600, color: "#94a3b8", display: "flex", alignItems: "center", gap: 7 }}>
+                  <Icon name="sliders" size={15} color="#64748b"/> {t.filters}
+                </span>
+                <Icon name="chevron-down" size={14} color="#64748b"/>
+              </button>
+            )}
 
             {filtersOpen && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-                <div style={sFilterBlock}>
-                  <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "auto 1fr auto",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 4
-                  }}>
+              <div style={{ ...sFilterBlock, marginBottom: 16 }}>
+
+                {/* Шапка блока фильтров: заголовок слева + Premium-бейдж + шеврон (сворачивает) */}
+                <div onClick={() => setFiltersOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, cursor: "pointer" }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#cbd5e1", display: "flex", alignItems: "center", gap: 7 }}>
+                    <Icon name="sliders" size={15} color="#fb923c"/> {t.filters}
+                  </span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <PremiumBadge label={t.premiumBadge}/>
-                    <span style={{ fontSize: 13, color: "#64748b", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                      <Icon name="flame" size={13} color={calAny ? "#64748b" : "#fb923c"}/> {t.calories} <span style={{ color: "#475569", fontSize: 11 }}>{t.perServing}</span>
-                    </span>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: calAny ? "#64748b" : "#fb923c", whiteSpace: "nowrap" }}>
-                      {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
-                    </span>
-                  </div>
-                  <DualSlider min={100} max={1000} valMin={calMin} valMax={calMax} onChange={handleSlider} disabled={calAny}/>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 10 }}>
-                    <span>100</span><span>1000</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                    <button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button>
-                  </div>
+                    <Icon name="chevron-up" size={14} color="#fb923c"/>
+                  </span>
                 </div>
 
-                <div style={sFilterBlock}>
-                  <div style={{ marginBottom: 10, textAlign: "center" }}>
-                    <span style={{ fontSize: 13, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                      <Icon name="clock" size={13} color="#fb923c"/> {t.cookTime}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {t.timeChips.map((c, i) => (
-                      <button key={c} onClick={() => setTimeIdx(i)} style={{ ...sChip(timeIdx === i), flex: 1, textAlign: "center", padding: "6px 0", fontSize: 12 }}>{c}</button>
-                    ))}
-                  </div>
+                {/* Калории */}
+                <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
+                  <Icon name="flame" size={13} color={calAny ? "#64748b" : "#fb923c"}/> {t.calories}
+                  <span style={{ color: "#475569", fontSize: 11 }}>{t.perServing}</span>
+                  <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 500, color: calAny ? "#64748b" : "#fb923c", whiteSpace: "nowrap" }}>
+                    {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
+                  </span>
+                </div>
+                <DualSlider min={100} max={1000} valMin={calMin} valMax={calMax} onChange={handleSlider} disabled={calAny}/>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 10 }}>
+                  <span>100</span><span>1000</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+                  <button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button>
                 </div>
 
-                <div style={sFilterBlock}>
-                  <div style={{ marginBottom: 10, textAlign: "center" }}>
-                    <span style={{ fontSize: 13, color: "#64748b", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                      <Icon name="chart-bar" size={13} color="#fb923c"/> {t.difficulty}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {t.diffChips.map((c, i) => (
-                      <button key={c} onClick={() => setDiffIdx(i)} style={{ ...sChip(diffIdx === i), flex: 1, textAlign: "center", padding: "6px 0", fontSize: 12 }}>{c}</button>
-                    ))}
-                  </div>
+                {/* Время */}
+                <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
+                  <Icon name="clock" size={13} color="#fb923c"/> {t.cookTime}
+                </div>
+                <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+                  {t.timeChips.map((c, i) => (
+                    <button key={c} onClick={() => setTimeIdx(i)} style={{ ...sChip(timeIdx === i), flex: 1, textAlign: "center", padding: "6px 0", fontSize: 12 }}>{c}</button>
+                  ))}
                 </div>
 
-                <div style={sFilterBlock}>
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginBottom: 10
-                  }}>
-                    <div style={{ flex: "0 0 auto" }}>
-                      <PremiumBadge label={t.premiumBadge}/>
-                    </div>
-                    <span style={{ flex: 1, fontSize: 13, color: "#64748b", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                      <Icon name="leaf" size={13} color="#fb923c"/> {t.diet}
-                    </span>
-                    <div style={{ flex: "0 0 auto", visibility: "hidden" }}>
-                      <PremiumBadge label={t.premiumBadge}/>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {t.dietItems.map(d => (
-                      <button key={d} onClick={() => toggleDiet(d)} style={sChip(activeDiets.has(d))}>{d}</button>
-                    ))}
-                  </div>
+                {/* Сложность */}
+                <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
+                  <Icon name="chart-bar" size={13} color="#fb923c"/> {t.difficulty}
+                </div>
+                <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+                  {t.diffChips.map((c, i) => (
+                    <button key={c} onClick={() => setDiffIdx(i)} style={{ ...sChip(diffIdx === i), flex: 1, textAlign: "center", padding: "6px 0", fontSize: 12 }}>{c}</button>
+                  ))}
+                </div>
+
+                {/* Диета */}
+                <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
+                  <Icon name="leaf" size={13} color="#fb923c"/> {t.diet}
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {t.dietItems.map(d => (
+                    <button key={d} onClick={() => toggleDiet(d)} style={sChip(activeDiets.has(d))}>{d}</button>
+                  ))}
                 </div>
               </div>
             )}
@@ -1638,8 +1646,8 @@ export default function App() {
               </div>
             </div>
 
-            <FeedbackButton t={t}/>
-          </>
+            <FeedbackButton t={t} pushBottom/>
+          </div>
         )}
       </div>
     </div>
