@@ -35,14 +35,16 @@ const SHOW_REFERRAL_BLOCK = false;
 const RU_FALLBACK_LANGS = ['be', 'kk', 'uz', 'ky', 'tg', 'tk'];
 
 // PATCH 10: порядок цикла языков теперь RU → EN → UK (английский вторым)
-const SUPPORTED_LANGS = ['ru', 'en', 'uk'];
+// ВРЕМЕННО: украинский убран из переключателя для РУ-презентации.
+// Вернуть язык — добавить 'uk' обратно в массив: ['ru', 'en', 'uk']. Переводы UK в коде остались.
+const SUPPORTED_LANGS = ['ru', 'en'];
 
 // PATCH 9.1: универсальная функция определения языка
 function detectLanguage() {
   const tgLangRaw = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
   const tgLang = (tgLangRaw || "").toLowerCase();
 
-  if (tgLang.startsWith("uk")) return "uk";
+  if (tgLang.startsWith("uk")) return "ru";  // ВРЕМЕННО: UK → RU (язык убран из переключателя)
   if (tgLang.startsWith("en")) return "en";
   if (tgLang.startsWith("ru")) return "ru";
   if (tgLang && RU_FALLBACK_LANGS.includes(tgLang)) return "ru";
@@ -50,7 +52,7 @@ function detectLanguage() {
   const browserLangRaw = navigator.language || (navigator.languages && navigator.languages[0]) || "";
   const browserLang = browserLangRaw.toLowerCase();
 
-  if (browserLang.startsWith("uk")) return "uk";
+  if (browserLang.startsWith("uk")) return "ru";  // ВРЕМЕННО: UK → RU
   if (browserLang.startsWith("ru")) return "ru";
   if (browserLang.startsWith("en")) return "en";
 
@@ -179,7 +181,7 @@ const DATA = {
     feedbackSend: "Отправить",
     feedbackSent: "✓ Отправлено!",
     feedbackCancel: "Отмена",
-    premiumBadge: "✨ PREMIUM",
+    premiumBadge: "PREMIUM",
     premiumBannerTitle: "🎁 Premium открыт для всех — тестовая фаза",
     premiumBannerDesc: "Калории, все диеты, избранное — попробуй прямо сейчас!",
     refTitle: "🎁 Пригласи друга — получи Premium",
@@ -277,7 +279,7 @@ const DATA = {
     feedbackSend: "Надіслати",
     feedbackSent: "✓ Надіслано!",
     feedbackCancel: "Скасувати",
-    premiumBadge: "✨ PREMIUM",
+    premiumBadge: "PREMIUM",
     premiumBannerTitle: "🎁 Premium відкрито для всіх — тестова фаза",
     premiumBannerDesc: "Калорії, всі дієти, обране — спробуй просто зараз!",
     refTitle: "🎁 Запроси друга — отримай Premium",
@@ -375,7 +377,7 @@ const DATA = {
     feedbackSend: "Send",
     feedbackSent: "✓ Sent!",
     feedbackCancel: "Cancel",
-    premiumBadge: "✨ PREMIUM",
+    premiumBadge: "PREMIUM",
     premiumBannerTitle: "🎁 Premium open for everyone — beta phase",
     premiumBannerDesc: "Calories, all diets, favorites — try it right now!",
     refTitle: "🎁 Invite a friend — get Premium",
@@ -563,17 +565,23 @@ function StarIcon({ filled, size = 20 }) {
 function PremiumBadge({ label }) {
   return (
     <span style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
       fontSize: 9, fontWeight: 700,
-      background: "linear-gradient(135deg, #fbbf24, #ea580c)",
-      color: "#fff",
-      padding: "2px 7px",
-      borderRadius: 10,
-      letterSpacing: 0.4,
-      boxShadow: "0 0 8px rgba(251,191,36,0.25)",
-      verticalAlign: "middle",
+      background: "rgba(234,179,8,0.12)",
+      border: "1px solid rgba(234,179,8,0.5)",
+      color: "#facc15",
+      padding: "3px 8px",
+      borderRadius: 20,
+      letterSpacing: 0.5,
+      textTransform: "uppercase",
       whiteSpace: "nowrap",
-      display: "inline-block",
-    }}>{label}</span>
+      verticalAlign: "middle",
+    }}>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="#facc15">
+        <path d="M3 7l4.5 3L12 4l4.5 6L21 7l-1.6 11H4.6L3 7z"/>
+      </svg>
+      {label}
+    </span>
   );
 }
 
@@ -798,7 +806,8 @@ export default function App() {
     try {
       const manual = localStorage.getItem(LANG_MANUAL_KEY);
       const saved = localStorage.getItem(LANG_KEY);
-      if (manual === "true" && (saved === "ru" || saved === "uk" || saved === "en")) {
+      // ВРЕМЕННО: UK убран — сохранённый "uk" игнорируем, уходим в автодетект (вернёт RU)
+      if (manual === "true" && (saved === "ru" || saved === "en")) {
         return saved;
       }
     } catch { /* */ }
@@ -1251,9 +1260,9 @@ export default function App() {
       <Toast message={toast} visible={!!toast} type={toastType}/>
 
       <style>{`
-        @keyframes starTwinkle {
-          0%, 100% { opacity: 0.3; transform: scale(0.8); }
-          50%      { opacity: 1;   transform: scale(1.2); }
+        @keyframes starSpin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
       `}</style>
 
@@ -1402,10 +1411,11 @@ export default function App() {
                   cursor: loadingMore ? "wait" : "pointer", display: "flex", alignItems: "center",
                   justifyContent: "center", gap: 7, marginTop: 6, opacity: loadingMore ? 0.7 : 1 }}>
                 {loadingMore ? (
-                  <><span style={{ display: "inline-flex", gap: 3, alignItems: "center", marginRight: 2 }}>
-                    <span style={{ fontSize: 13, animation: "starTwinkle 1.2s ease-in-out infinite" }}>✨</span>
-                    <span style={{ fontSize: 10, animation: "starTwinkle 1.2s ease-in-out infinite 0.4s" }}>⭐</span>
-                    <span style={{ fontSize: 12, animation: "starTwinkle 1.2s ease-in-out infinite 0.8s" }}>✨</span>
+                  <><span style={{ width: 18, height: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="#fb923c"
+                      style={{ animation: "starSpin 1.6s linear infinite", transformOrigin: "center" }}>
+                      <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/>
+                    </svg>
                   </span>{t.loadingMore}</>
                 ) : (<><Icon name="sparkles" size={15} color="#fb923c"/> {t.showMore}</>)}
               </button>
@@ -1509,10 +1519,13 @@ export default function App() {
                 background: CARD, border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 12, padding: "13px 16px", cursor: "pointer", marginBottom: 16,
                 boxSizing: "border-box" }}>
-                <span style={{ fontSize: 15, fontWeight: 600, color: "#94a3b8", display: "flex", alignItems: "center", gap: 7 }}>
+                <span style={{ fontSize: 15, fontWeight: 600, color: "#cbd5e1", display: "flex", alignItems: "center", gap: 7 }}>
                   <Icon name="sliders" size={15} color="#64748b"/> {t.filters}
                 </span>
-                <Icon name="chevron-down" size={14} color="#64748b"/>
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <PremiumBadge label={t.premiumBadge}/>
+                  <Icon name="chevron-down" size={14} color="#64748b"/>
+                </span>
               </button>
             )}
 
@@ -1521,7 +1534,7 @@ export default function App() {
 
                 {/* Шапка блока фильтров: заголовок слева + Premium-бейдж + шеврон (сворачивает) */}
                 <div onClick={() => setFiltersOpen(false)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, cursor: "pointer" }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#cbd5e1", display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: "#cbd5e1", display: "flex", alignItems: "center", gap: 7 }}>
                     <Icon name="sliders" size={15} color="#fb923c"/> {t.filters}
                   </span>
                   <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
