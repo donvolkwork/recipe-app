@@ -566,21 +566,24 @@ function PremiumBadge({ label }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
-      fontSize: 9, fontWeight: 700,
+      fontSize: 9, fontWeight: 700, lineHeight: 1,
+      fontFamily: "system-ui,-apple-system,sans-serif",
       background: "rgba(234,179,8,0.12)",
       border: "1px solid rgba(234,179,8,0.5)",
       color: "#facc15",
-      padding: "3px 8px",
+      padding: "4px 9px",
       borderRadius: 20,
       letterSpacing: 0.5,
       textTransform: "uppercase",
       whiteSpace: "nowrap",
+      flexShrink: 0,
+      boxSizing: "border-box",
       verticalAlign: "middle",
     }}>
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="#facc15">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="#facc15" style={{ flexShrink: 0, display: "block" }}>
         <path d="M3 7l4.5 3L12 4l4.5 6L21 7l-1.6 11H4.6L3 7z"/>
       </svg>
-      {label}
+      <span style={{ display: "block", lineHeight: 1 }}>{label}</span>
     </span>
   );
 }
@@ -1556,7 +1559,8 @@ export default function App() {
                 width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                 background: CARD, border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 12, padding: "13px 16px", cursor: "pointer", marginBottom: 16,
-                boxSizing: "border-box" }}>
+                boxSizing: "border-box", fontFamily: "inherit", fontSize: 15, lineHeight: 1.2,
+                appearance: "none", WebkitAppearance: "none", textAlign: "left" }}>
                 <span style={{ fontSize: 15, fontWeight: 600, color: "#cbd5e1", display: "flex", alignItems: "center", gap: 7 }}>
                   <Icon name="sliders" size={15} color="#64748b"/> {t.filters}
                 </span>
