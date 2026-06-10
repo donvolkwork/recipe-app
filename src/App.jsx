@@ -18,6 +18,9 @@ const LANG_MANUAL_KEY = "userLangManual";
 const BG = "#0c0e15";          // основной фон
 const SURFACE = "#16181f";     // непрозрачный фон блоков/карточек/кнопок-контейнеров
 const SURFACE_HI = "#1c1f28";  // чуть светлее (поля ввода, активные подложки)
+// PATCH 10.1: карточки/блоки чуть светлее для лучшего отделения от фона на паттерне.
+const CARD = "#1c1f28";        // блок на фоне (карточки, фильтры, категории, поле, второст. кнопки)
+const CARD_HI = "#252834";     // вложенное в блок (чипсы, БЖУ-ячейки, кнопка-звезда, «Список»)
 
 // PATCH 10.1: кулинарный паттерн — повторяющаяся плитка (repeat).
 // Мелкие иконки кухни под разными углами, белые с низкой прозрачностью.
@@ -127,13 +130,13 @@ const DATA = {
     addProductPlaceholder: "Добавить продукт...",
     btn: "Что приготовить?",
     loading: "Придумываю рецепты",
-    loadingMore: "Ищу ещё",
+    loadingMore: "Придумываю",
     clearAll: "очистить всё",
     selected: "выбрано",
     results: "Варианты блюд",
     back: "К фильтрам",
     toMyRecipes: "К моим рецептам",
-    showMore: "Придумать ещё",
+    showMore: "Ещё варианты",
     kcal: "ккал",
     kcalPer: "ккал / порция",
     perServing: "/ порция",
@@ -154,8 +157,8 @@ const DATA = {
     diet: "Диета",
     filters: "Фильтры",
     dietItems: ["🥗 Вегетарианское","🌾 Без глютена","☦️ Пост","🥑 Кето","🥣 Для ЖКТ","🔥 Для похудения"],
-    timeChips: ["До 20 мин","До 40 мин","До 60 мин","Любое"],
-    diffChips: ["Легко","Средне","Сложно","Любая"],
+    timeChips: ["До 20","До 40","До 60"], timeUnit: "мин",
+    diffChips: ["Легко","Средне","Сложно"],
     calAny: "Любые",
     noResults: "Рецепт не найден",
     noResultsDesc: "С такой комбинацией фильтров рецептов нет. Попробуй расширить диапазон калорий, изменить сложность или убрать диетические ограничения.",
@@ -225,13 +228,13 @@ const DATA = {
     addProductPlaceholder: "Додати продукт...",
     btn: "Що приготувати?",
     loading: "Придумую рецепти",
-    loadingMore: "Шукаю ще",
+    loadingMore: "Вигадую",
     clearAll: "очистити все",
     selected: "обрано",
     results: "Варіанти страв",
     back: "До фільтрів",
     toMyRecipes: "До моїх рецептів",
-    showMore: "Придумати ще",
+    showMore: "Ще варіанти",
     kcal: "ккал",
     kcalPer: "ккал / порція",
     perServing: "/ порція",
@@ -252,8 +255,8 @@ const DATA = {
     diet: "Дієта",
     filters: "Фільтри",
     dietItems: ["🥗 Вегетаріанське","🌾 Без глютену","☦️ Піст","🥑 Кето","🥣 Для шлунка","🔥 Для схуднення"],
-    timeChips: ["До 20 хв","До 40 хв","До 60 хв","Будь-який"],
-    diffChips: ["Легко","Середньо","Складно","Будь-яка"],
+    timeChips: ["До 20","До 40","До 60"], timeUnit: "хв",
+    diffChips: ["Легко","Середньо","Складно"],
     calAny: "Будь-які",
     noResults: "Рецепт не знайдено",
     noResultsDesc: "З такою комбінацією фільтрів рецептів немає. Спробуй розширити діапазон калорій, змінити складність або прибрати дієтичні обмеження.",
@@ -323,13 +326,13 @@ const DATA = {
     addProductPlaceholder: "Add ingredient...",
     btn: "What can I cook?",
     loading: "Finding recipes",
-    loadingMore: "Finding more",
+    loadingMore: "Thinking",
     clearAll: "clear all",
     selected: "selected",
     results: "Recipe ideas",
     back: "To filters",
     toMyRecipes: "To my recipes",
-    showMore: "Create more",
+    showMore: "More options",
     kcal: "kcal",
     kcalPer: "kcal / serving",
     perServing: "/ serving",
@@ -350,8 +353,8 @@ const DATA = {
     diet: "Diet",
     filters: "Filters",
     dietItems: ["🥗 Vegetarian","🌾 Gluten-free","☦️ Fasting","🥑 Keto","🥣 Digestive","🔥 Weight loss"],
-    timeChips: ["Under 20 min","Under 40 min","Under 60 min","Any"],
-    diffChips: ["Easy","Medium","Hard","Any"],
+    timeChips: ["Under 20","Under 40","Under 60"], timeUnit: "min",
+    diffChips: ["Easy","Medium","Hard"],
     calAny: "Any",
     noResults: "No recipes found",
     noResultsDesc: "No recipes match your filters. Try widening the calorie range, changing difficulty, or removing diet restrictions.",
@@ -526,7 +529,7 @@ function CookingLoader({ text }) {
   );
 }
 
-// PATCH 10.1: лого — шапка повара (вместо сковородки). onClick-логика прежняя.
+// PATCH 10.1: лого — пышная шапка повара (вариант C, заливкой). onClick-логика прежняя.
 function PanLogo({ onClick }) {
   return (
     <div onClick={onClick} style={{
@@ -534,10 +537,9 @@ function PanLogo({ onClick }) {
       display: "flex", alignItems: "center", justifyContent: "center",
       flexShrink: 0, cursor: onClick ? "pointer" : "default",
     }}>
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-        stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 18.7V13c-1.7-.4-3-1.9-3-3.8C3 7 5 5 7.5 5c.5 0 1 .1 1.4.3C9.6 3.9 10.7 3 12 3s2.4.9 3.1 2.3c.4-.2.9-.3 1.4-.3C19 5 21 7 21 9.2c0 1.9-1.3 3.4-3 3.8v5.7"/>
-        <path d="M6 18.7c0 .7.6 1.3 1.3 1.3h9.4c.7 0 1.3-.6 1.3-1.3"/>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+        <path d="M17.5 5.5a3.5 3.5 0 0 0-3-1.95 3.5 3.5 0 0 0-5 0 3.5 3.5 0 0 0-3 1.95A3.5 3.5 0 0 0 5.5 12.4V13a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-.6a3.5 3.5 0 0 0-1-6.9z"/>
+        <path d="M7 15.5h10V20a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z"/>
       </svg>
     </div>
   );
@@ -575,15 +577,17 @@ function PremiumBadge({ label }) {
   );
 }
 
-function Toast({ message, visible }) {
+function Toast({ message, visible, type }) {
   if (!visible) return null;
+  const isGold = type === "gold";
   return (
     <div style={{
       position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)",
-      background: "rgba(22,163,74,0.95)", color: "#fff",
-      padding: "10px 20px", borderRadius: 12,
-      fontSize: 13, fontWeight: 500, zIndex: 200,
-      boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+      background: isGold ? "linear-gradient(135deg,#f59e0b,#eab308)" : "rgba(22,163,74,0.95)",
+      color: isGold ? "#1a1206" : "#fff",
+      padding: "11px 22px", borderRadius: 12,
+      fontSize: 14, fontWeight: 700, zIndex: 200,
+      boxShadow: isGold ? "0 4px 16px rgba(234,179,8,0.3)" : "0 4px 16px rgba(0,0,0,0.4)",
       maxWidth: "calc(100% - 32px)", textAlign: "center",
     }}>{message}</div>
   );
@@ -696,7 +700,7 @@ function SmartField({ placeholder, value, onChange, onConfirm, confirmed, onClea
   return (
     <div style={{
       width: "100%",
-      background: confirmed ? "rgba(234,88,12,0.10)" : SURFACE_HI,
+      background: confirmed ? "rgba(234,88,12,0.10)" : CARD,
       border: confirmed ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.1)",
       borderRadius: 12, padding: "10px 12px",
       display: "flex", alignItems: "center", gap: 8,
@@ -802,6 +806,7 @@ export default function App() {
   });
 
   const [toast, setToast] = useState(null);
+  const [toastType, setToastType] = useState(null);
 
   const [referrals] = useState(() => {
     try {
@@ -833,11 +838,12 @@ export default function App() {
 
   // PATCH 10: фильтры свёрнуты по умолчанию
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // PATCH 10.1: калории — дефолт полный диапазон (100–1000) = "любые" (кнопки "Любые" больше нет)
   const [calMin, setCalMin] = useState(100);
-  const [calMax, setCalMax] = useState(500);
-  const [calAny, setCalAny] = useState(true);
-  const [timeIdx, setTimeIdx] = useState(3);
-  const [diffIdx, setDiffIdx] = useState(3);
+  const [calMax, setCalMax] = useState(1000);
+  // время/сложность — null = не выбрано = подойдёт любое (кнопок "Любое/Любая" больше нет)
+  const [timeIdx, setTimeIdx] = useState(null);
+  const [diffIdx, setDiffIdx] = useState(null);
   const [activeDiets, setActiveDiets] = useState(new Set());
 
   const [recipes, setRecipes] = useState(null);
@@ -877,9 +883,10 @@ export default function App() {
 
   const clearLabelByLang = lang === 'uk' ? 'очистити' : lang === 'en' ? 'clear' : 'очистить';
 
-  const showToast = (msg) => {
+  const showToast = (msg, type) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2000);
+    setToastType(type || null);
+    setTimeout(() => { setToast(null); setToastType(null); }, 2000);
   };
 
   const isFavorite = useCallback((r) => {
@@ -900,7 +907,7 @@ export default function App() {
           showToast(t.favoritesLimitMsg);
           return prev;
         }
-        showToast(t.addedToFavorites);
+        showToast(t.addedToFavorites, "gold");
         return [...prev, r];
       }
     });
@@ -925,7 +932,7 @@ export default function App() {
     setSelected(prev => { const n = new Set(prev); n.has(item) ? n.delete(item) : n.add(item); return n; });
   };
   const toggleDiet = d => setActiveDiets(prev => { const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n; });
-  const handleSlider = (newMin, newMax) => { setCalMin(newMin); setCalMax(newMax); setCalAny(false); };
+  const handleSlider = (newMin, newMax) => { setCalMin(newMin); setCalMax(newMax); };
 
   const handleToggleRecipe = (i) => {
     setOpenSet(prev => {
@@ -968,16 +975,18 @@ export default function App() {
   const langRef = useRef(lang);
   langRef.current = lang;
 
+  // PATCH 10.1: "любые калории" = полный диапазон (100–1000). time/diff: null → пустая строка (любое).
+  const calIsAny = calMin <= 100 && calMax >= 1000;
   const buildBody = useCallback((excludeList) => ({
     ingredients: [...selected],
     dish: (dishConfirmed && dish.trim()) ? dish.trim() : "",
     exclude: excludeList,
     language: langRef.current,
-    calories: { min: calAny ? 0 : calMin, max: calAny ? 99999 : calMax },
-    time: DATA[langRef.current].timeChips[timeIdx],
-    difficulty: DATA[langRef.current].diffChips[diffIdx],
+    calories: { min: calIsAny ? 0 : calMin, max: calIsAny ? 99999 : calMax },
+    time: timeIdx != null ? DATA[langRef.current].timeChips[timeIdx] : "",
+    difficulty: diffIdx != null ? DATA[langRef.current].diffChips[diffIdx] : "",
     diet: [...activeDiets],
-  }), [selected, dish, dishConfirmed, calAny, calMin, calMax, timeIdx, diffIdx, activeDiets]);
+  }), [selected, dish, dishConfirmed, calIsAny, calMin, calMax, timeIdx, diffIdx, activeDiets]);
 
   const generate = useCallback(async () => {
     const hasDish = dishConfirmed && dish.trim();
@@ -1006,7 +1015,7 @@ export default function App() {
       }
     } catch { setApiError(true); }
     setLoading(false);
-  }, [dish, dishConfirmed, selected, calMin, calMax, calAny, timeIdx, diffIdx, activeDiets, buildBody]);
+  }, [dish, dishConfirmed, selected, calMin, calMax, calIsAny, timeIdx, diffIdx, activeDiets, buildBody]);
 
   const showMore = useCallback(async () => {
     setLoadingMore(true);
@@ -1085,9 +1094,9 @@ export default function App() {
 
   const sLabel = { fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 8 };
   const sDiv = { height: 1, background: "rgba(255,255,255,0.07)", margin: "12px 0" };
-  const sFilterBlock = { background: SURFACE, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "14px 14px" };
+  const sFilterBlock = { background: CARD, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "14px 14px" };
   const sChip = active => ({
-    background: active ? "rgba(234,88,12,0.15)" : SURFACE_HI,
+    background: active ? "rgba(234,88,12,0.15)" : CARD_HI,
     border: active ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.08)",
     borderRadius: 8, color: active ? "#fb923c" : "#94a3b8",
     fontSize: 14, padding: "6px 12px", cursor: "pointer",
@@ -1100,16 +1109,16 @@ export default function App() {
     const isOpen = openState.has(i);
     const fav = isFavorite(r);
     return (
-      <div key={i} style={{ background: SURFACE, border: "1px solid rgba(255,255,255,0.09)",
+      <div key={i} style={{ background: CARD, border: "1px solid rgba(255,255,255,0.1)",
         borderRadius: 16, marginBottom: 12, overflow: "hidden" }}>
 
         {/* Шапка: эмодзи + название во всю строку + звезда/шеврон справа.
             Идентична в свёрнутом и развёрнутом — не прыгает. */}
         <div onClick={() => toggleHandler(i)}
-          style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 14px 12px", cursor: "pointer" }}>
+          style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 14px 11px", cursor: "pointer" }}>
           <span style={{ fontSize: 30, flexShrink: 0, lineHeight: 1 }}>{r.emoji}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "#f1f5f9", lineHeight: 1.3, textAlign: "left" }}>{r.name}</div>
+            <div style={{ fontSize: 17, fontWeight: 600, color: "#f1f5f9", lineHeight: 1.3, textAlign: "left" }}>{r.name}</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
             <button
@@ -1117,7 +1126,7 @@ export default function App() {
               onMouseDown={(e) => e.stopPropagation()}
               style={{
                 width: 30, height: 30, borderRadius: 8,
-                background: fav ? "rgba(251,191,36,0.12)" : SURFACE_HI,
+                background: fav ? "rgba(251,191,36,0.12)" : CARD_HI,
                 border: fav ? "1px solid rgba(251,191,36,0.45)" : "1px solid rgba(255,255,255,0.08)",
                 boxShadow: fav ? "0 0 8px rgba(251,191,36,0.25)" : "none",
                 padding: 0, cursor: "pointer",
@@ -1133,21 +1142,20 @@ export default function App() {
           </div>
         </div>
 
-        {/* Мета-строка во всю ширину на подложке — время · сложность · ккал/порция.
+        {/* Мета-строка во всю ширину БЕЗ подложки (на фоне карточки), одним серым цветом.
             Одинаково в свёрнутом и развёрнутом, всегда под шапкой. */}
         <div onClick={() => toggleHandler(i)} style={{ display: "flex", justifyContent: "space-around", alignItems: "center",
-          padding: "11px 12px", borderTop: "1px solid rgba(255,255,255,0.06)",
-          background: "rgba(255,255,255,0.02)", cursor: "pointer", flexWrap: "wrap", gap: 6 }}>
-          <span style={{ fontSize: 13, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5 }}>
-            <Icon name="clock" size={14} color="#94a3b8"/> {r.time}
+          padding: "0 12px 13px", cursor: "pointer", flexWrap: "wrap", gap: 6 }}>
+          <span style={{ fontSize: 14, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5 }}>
+            <Icon name="clock" size={15} color="#94a3b8"/> {r.time}
           </span>
-          <span style={{ fontSize: 13, color: "#4ade80", display: "flex", alignItems: "center", gap: 5 }}>
-            <Icon name="check" size={14} color="#4ade80"/> {t.diff[r.difficulty] || r.difficulty}
+          <span style={{ fontSize: 14, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5 }}>
+            <Icon name="check" size={15} color="#94a3b8"/> {t.diff[r.difficulty] || r.difficulty}
           </span>
           {r.calories && (
-            <span style={{ fontSize: 13, color: "#fb923c", display: "flex", alignItems: "center", gap: 5 }}>
-              <Icon name="flame" size={14} color="#fb923c"/> {r.calories} {t.kcal}
-              <span style={{ fontSize: 10, color: "#64748b" }}>{t.perServing}</span>
+            <span style={{ fontSize: 14, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5 }}>
+              <Icon name="flame" size={15} color="#94a3b8"/> {r.calories} {t.kcal}
+              <span style={{ fontSize: 11, color: "#64748b" }}>{t.perServing}</span>
             </span>
           )}
         </div>
@@ -1165,7 +1173,7 @@ export default function App() {
                 <div key={j} style={{
                   padding: "9px 2px",
                   borderBottom: j < r.ingredients.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                  fontSize: 13, color: "#cbd5e1", textAlign: "left",
+                  fontSize: 16, color: "#cbd5e1", textAlign: "left",
                 }}>{ing}</div>
               ))}
             </div>
@@ -1178,15 +1186,15 @@ export default function App() {
                   <span style={sSectionLabel}>{t.macrosLabel}</span>
                 </div>
                 <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
-                  <span style={{ flex: 1, textAlign: "center", background: SURFACE_HI,
+                  <span style={{ flex: 1, textAlign: "center", background: CARD_HI,
                     border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#cbd5e1",
-                    fontSize: 12, padding: "7px 4px" }}>{t.protein} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.protein} {g}</span></span>
-                  <span style={{ flex: 1, textAlign: "center", background: SURFACE_HI,
+                    fontSize: 14, padding: "7px 4px" }}>{t.protein} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.protein} {g}</span></span>
+                  <span style={{ flex: 1, textAlign: "center", background: CARD_HI,
                     border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#cbd5e1",
-                    fontSize: 12, padding: "7px 4px" }}>{t.fat} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.fat} {g}</span></span>
-                  <span style={{ flex: 1, textAlign: "center", background: SURFACE_HI,
+                    fontSize: 14, padding: "7px 4px" }}>{t.fat} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.fat} {g}</span></span>
+                  <span style={{ flex: 1, textAlign: "center", background: CARD_HI,
                     border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8, color: "#cbd5e1",
-                    fontSize: 12, padding: "7px 4px" }}>{t.carbs} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.carbs} {g}</span></span>
+                    fontSize: 14, padding: "7px 4px" }}>{t.carbs} <span style={{ color: "#f8fafc", fontWeight: 500 }}>{r.carbs} {g}</span></span>
                 </div>
               </>
             )}
@@ -1201,11 +1209,11 @@ export default function App() {
                 <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                   <div style={{ width: 24, height: 24, borderRadius: "50%",
                     background: "rgba(234,88,12,0.15)", border: "1px solid rgba(234,88,12,0.4)",
-                    color: "#fb923c", fontSize: 12, fontWeight: 700,
+                    color: "#fb923c", fontSize: 13, fontWeight: 700,
                     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     {j + 1}
                   </div>
-                  <span style={{ fontSize: 14, color: "#cbd5e1", lineHeight: 1.5, textAlign: "left" }}>{step}</span>
+                  <span style={{ fontSize: 16, color: "#cbd5e1", lineHeight: 1.5, textAlign: "left" }}>{step}</span>
                 </div>
               ))}
             </div>
@@ -1214,13 +1222,13 @@ export default function App() {
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => handleShare(r)}
                 style={{ flex: 1, background: "rgba(234,88,12,0.14)", border: "1px solid rgba(234,88,12,0.4)",
-                  borderRadius: 12, color: "#fb923c", fontSize: 13, fontWeight: 600, padding: "11px",
+                  borderRadius: 12, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "11px",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 <Icon name="share" size={15} color="#fb923c"/> {t.share}
               </button>
               <button onClick={() => handleShopList(r, i)}
-                style={{ flex: 1, background: SURFACE_HI, border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: 12, color: copiedIdx === i ? "#6ee7b7" : "#cbd5e1", fontSize: 13, fontWeight: 600, padding: "11px",
+                style={{ flex: 1, background: CARD_HI, border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 12, color: copiedIdx === i ? "#6ee7b7" : "#cbd5e1", fontSize: 14, fontWeight: 600, padding: "11px",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 {copiedIdx === i ? "✓ " + t.copiedMsg : (<><Icon name="checklist" size={15} color="#cbd5e1"/> {t.shopList}</>)}
               </button>
@@ -1240,7 +1248,14 @@ export default function App() {
       padding: 0, margin: 0, boxSizing: "border-box",
       fontFamily: "system-ui,-apple-system,sans-serif" }}>
 
-      <Toast message={toast} visible={!!toast}/>
+      <Toast message={toast} visible={!!toast} type={toastType}/>
+
+      <style>{`
+        @keyframes starTwinkle {
+          0%, 100% { opacity: 0.3; transform: scale(0.8); }
+          50%      { opacity: 1;   transform: scale(1.2); }
+        }
+      `}</style>
 
       <div style={{
         width: "100%", maxWidth: 480, minHeight: "100vh",
@@ -1264,19 +1279,19 @@ export default function App() {
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
             {/* PATCH 10: звезда в хедере — горит без счётчика когда есть избранное */}
             <button onClick={goToFavorites}
-              style={{ background: favorites.length > 0 ? "rgba(251,191,36,0.12)" : SURFACE_HI,
+              style={{ background: favorites.length > 0 ? "rgba(251,191,36,0.12)" : CARD_HI,
                 border: favorites.length > 0 ? "1px solid rgba(251,191,36,0.35)" : "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, padding: "6px 10px", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center" }}>
               <StarIcon filled={favorites.length > 0} size={15}/>
             </button>
             <button onClick={handleHeaderShare}
-              style={{ background: SURFACE_HI, border: "1px solid rgba(255,255,255,0.09)",
+              style={{ background: CARD_HI, border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <Icon name="share" size={14} color="#64748b"/>
             </button>
             <button onClick={handleLangSwitch}
-              style={{ background: SURFACE_HI, border: "1px solid rgba(255,255,255,0.09)",
+              style={{ background: CARD_HI, border: "1px solid rgba(255,255,255,0.09)",
                 borderRadius: 9, color: "#64748b", fontSize: 13, fontWeight: 700, padding: "6px 12px", cursor: "pointer" }}>
               {nextLangLabel}
             </button>
@@ -1358,10 +1373,10 @@ export default function App() {
                 <div style={{ fontSize: 40, marginBottom: 14 }}>🔍</div>
                 <div style={{ fontSize: 17, fontWeight: 500, color: "#f1f5f9", marginBottom: 10 }}>{t.noResults}</div>
                 <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6, marginBottom: 18 }}>{t.noResultsDesc}</div>
-                <button onClick={backToFilters} style={{ background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.35)",
-                  borderRadius: 12, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "12px 24px", cursor: "pointer",
-                  display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="arrow-left" size={15} color="#fb923c"/> {t.changeParams}
+                <button onClick={backToFilters} style={{ width: "100%", background: "#ea580c", border: "none",
+                  borderRadius: 12, color: "#fff", fontSize: 15, fontWeight: 700, padding: "14px", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6, boxSizing: "border-box" }}>
+                  <Icon name="arrow-left" size={15} color="#fff"/> {t.changeParams}
                 </button>
               </div>
             )}
@@ -1371,8 +1386,8 @@ export default function App() {
                 <div style={{ fontSize: 40, marginBottom: 14 }}>⚠️</div>
                 <div style={{ fontSize: 17, fontWeight: 500, color: "#f1f5f9", marginBottom: 10 }}>{t.errorTitle}</div>
                 <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6, marginBottom: 18 }}>{t.errorDesc}</div>
-                <button onClick={generate} style={{ background: "#ea580c", border: "none", borderRadius: 12,
-                  color: "#fff", fontSize: 14, fontWeight: 600, padding: "12px 24px", cursor: "pointer" }}>
+                <button onClick={generate} style={{ width: "100%", background: "#ea580c", border: "none", borderRadius: 12,
+                  color: "#fff", fontSize: 15, fontWeight: 700, padding: "14px", cursor: "pointer", boxSizing: "border-box" }}>
                   {t.retry}
                 </button>
               </div>
@@ -1387,21 +1402,21 @@ export default function App() {
                   cursor: loadingMore ? "wait" : "pointer", display: "flex", alignItems: "center",
                   justifyContent: "center", gap: 7, marginTop: 6, opacity: loadingMore ? 0.7 : 1 }}>
                 {loadingMore ? (
-                  <>{t.loadingMore}<span style={{ display: "inline-block", marginLeft: 2 }}>
-                    <span style={{ animation: "dotPulse 1.4s infinite" }}>.</span>
-                    <span style={{ animation: "dotPulse 1.4s infinite 0.2s" }}>.</span>
-                    <span style={{ animation: "dotPulse 1.4s infinite 0.4s" }}>.</span>
-                  </span></>
+                  <><span style={{ display: "inline-flex", gap: 3, alignItems: "center", marginRight: 2 }}>
+                    <span style={{ fontSize: 13, animation: "starTwinkle 1.2s ease-in-out infinite" }}>✨</span>
+                    <span style={{ fontSize: 10, animation: "starTwinkle 1.2s ease-in-out infinite 0.4s" }}>⭐</span>
+                    <span style={{ fontSize: 12, animation: "starTwinkle 1.2s ease-in-out infinite 0.8s" }}>✨</span>
+                  </span>{t.loadingMore}</>
                 ) : (<><Icon name="sparkles" size={15} color="#fb923c"/> {t.showMore}</>)}
               </button>
             )}
 
             {!loading && (recipes || noResults || apiError) && (
               <button onClick={backToFilters}
-                style={{ width: "100%", background: "none", border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: 12, color: "#64748b", fontSize: 14, padding: "12px 16px", cursor: "pointer", marginTop: 8,
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                <Icon name="arrow-left" size={15} color="#64748b"/> {t.back}
+                style={{ width: "100%", background: CARD, border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 12, color: "#94a3b8", fontSize: 15, fontWeight: 600, padding: "14px", cursor: "pointer", marginTop: 8,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6, boxSizing: "border-box" }}>
+                <Icon name="arrow-left" size={15} color="#94a3b8"/> {t.back}
               </button>
             )}
 
@@ -1455,11 +1470,11 @@ export default function App() {
               {Object.entries(t.cats).map(([key, { label, icon }]) => (
                 <div key={key} onClick={() => handleCatClick(key)} style={{
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                  background: activeCat === key ? "rgba(234,88,12,0.15)" : SURFACE,
+                  background: activeCat === key ? "rgba(234,88,12,0.15)" : CARD,
                   border: activeCat === key ? "1px solid rgba(234,88,12,0.45)" : "1px solid rgba(255,255,255,0.07)",
-                  borderRadius: 12, padding: "9px 4px", cursor: "pointer" }}>
-                  <span style={{ fontSize: 20 }}>{icon}</span>
-                  <span style={{ fontSize: 10, color: activeCat === key ? "#fb923c" : "#64748b", textAlign: "center", lineHeight: 1.2 }}>{label}</span>
+                  borderRadius: 12, padding: "10px 4px", cursor: "pointer" }}>
+                  <span style={{ fontSize: 24 }}>{icon}</span>
+                  <span style={{ fontSize: 11, color: activeCat === key ? "#fb923c" : "#94a3b8", textAlign: "center", lineHeight: 1.2 }}>{label}</span>
                 </div>
               ))}
             </div>
@@ -1471,9 +1486,9 @@ export default function App() {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
                   {t.items[activeCat].map(item => (
                     <button key={item} onClick={() => toggle(item)} style={{
-                      background: selected.has(item) ? "rgba(234,88,12,0.15)" : SURFACE,
+                      background: selected.has(item) ? "rgba(234,88,12,0.15)" : CARD,
                       border: selected.has(item) ? "1.5px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: 10, color: selected.has(item) ? "#fed7aa" : "#64748b",
+                      borderRadius: 10, color: selected.has(item) ? "#fed7aa" : "#94a3b8",
                       fontSize: 15, padding: "8px 14px", cursor: "pointer" }}>
                       {selected.has(item) ? "✓ " : ""}{item}
                     </button>
@@ -1491,7 +1506,7 @@ export default function App() {
             {!filtersOpen && (
               <button onClick={() => setFiltersOpen(true)} style={{
                 width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                background: SURFACE, border: "1px solid rgba(255,255,255,0.08)",
+                background: CARD, border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 12, padding: "13px 16px", cursor: "pointer", marginBottom: 16,
                 boxSizing: "border-box" }}>
                 <span style={{ fontSize: 15, fontWeight: 600, color: "#94a3b8", display: "flex", alignItems: "center", gap: 7 }}>
@@ -1515,49 +1530,46 @@ export default function App() {
                   </span>
                 </div>
 
-                {/* Калории */}
-                <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
-                  <Icon name="flame" size={13} color={calAny ? "#64748b" : "#fb923c"}/> {t.calories}
+                {/* Калории — без кнопки "Любые": полный диапазон = любые */}
+                <div style={{ fontSize: 14, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
+                  <Icon name="flame" size={14} color={calIsAny ? "#64748b" : "#fb923c"}/> {t.calories}
                   <span style={{ color: "#475569", fontSize: 11 }}>{t.perServing}</span>
-                  <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 500, color: calAny ? "#64748b" : "#fb923c", whiteSpace: "nowrap" }}>
-                    {calAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
+                  <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 500, color: calIsAny ? "#64748b" : "#fb923c", whiteSpace: "nowrap" }}>
+                    {calIsAny ? t.calAny : `${calMin} — ${calMax} ${t.kcal}`}
                   </span>
                 </div>
-                <DualSlider min={100} max={1000} valMin={calMin} valMax={calMax} onChange={handleSlider} disabled={calAny}/>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 10 }}>
+                <DualSlider min={100} max={1000} valMin={calMin} valMax={calMax} onChange={handleSlider} disabled={false}/>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 16 }}>
                   <span>100</span><span>1000</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
-                  <button onClick={() => setCalAny(a => !a)} style={sChip(calAny)}>{t.calAny}</button>
-                </div>
 
-                {/* Время */}
-                <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
-                  <Icon name="clock" size={13} color="#fb923c"/> {t.cookTime}
+                {/* Время — 3 чипса, "мин" у заголовка; повторный тап снимает (null = любое) */}
+                <div style={{ fontSize: 14, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
+                  <Icon name="clock" size={14} color="#fb923c"/> {t.cookTime} <span style={{ color: "#475569", fontSize: 11 }}>{t.timeUnit}</span>
                 </div>
                 <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
                   {t.timeChips.map((c, i) => (
-                    <button key={c} onClick={() => setTimeIdx(i)} style={{ ...sChip(timeIdx === i), flex: 1, textAlign: "center", padding: "6px 0", fontSize: 12 }}>{c}</button>
+                    <button key={c} onClick={() => setTimeIdx(timeIdx === i ? null : i)} style={{ ...sChip(timeIdx === i), flex: 1, textAlign: "center", padding: "9px 0", fontSize: 14 }}>{c}</button>
                   ))}
                 </div>
 
-                {/* Сложность */}
-                <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
-                  <Icon name="chart-bar" size={13} color="#fb923c"/> {t.difficulty}
+                {/* Сложность — 3 чипса; повторный тап снимает (null = любая) */}
+                <div style={{ fontSize: 14, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
+                  <Icon name="chart-bar" size={14} color="#fb923c"/> {t.difficulty}
                 </div>
                 <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
                   {t.diffChips.map((c, i) => (
-                    <button key={c} onClick={() => setDiffIdx(i)} style={{ ...sChip(diffIdx === i), flex: 1, textAlign: "center", padding: "6px 0", fontSize: 12 }}>{c}</button>
+                    <button key={c} onClick={() => setDiffIdx(diffIdx === i ? null : i)} style={{ ...sChip(diffIdx === i), flex: 1, textAlign: "center", padding: "9px 0", fontSize: 14 }}>{c}</button>
                   ))}
                 </div>
 
-                {/* Диета */}
-                <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
-                  <Icon name="leaf" size={13} color="#fb923c"/> {t.diet}
+                {/* Диета — полные названия, перенос в несколько строк */}
+                <div style={{ fontSize: 14, color: "#94a3b8", display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
+                  <Icon name="leaf" size={14} color="#fb923c"/> {t.diet}
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
                   {t.dietItems.map(d => (
-                    <button key={d} onClick={() => toggleDiet(d)} style={sChip(activeDiets.has(d))}>{d}</button>
+                    <button key={d} onClick={() => toggleDiet(d)} style={{ ...sChip(activeDiets.has(d)), fontSize: 14, padding: "7px 13px" }}>{d}</button>
                   ))}
                 </div>
               </div>
