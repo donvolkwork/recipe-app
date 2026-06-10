@@ -129,7 +129,7 @@ const DATA = {
       drinks:   ["Молоко","Кефир","Сок апельсиновый","Кокосовое молоко","Зелёный чай","Кофе","Имбирь","Мята"],
       other:    ["Оливковое масло","Соевый соус","Томатная паста","Грибы","Фасоль","Мёд","Горчица","Уксус","Соль","Перец чёрный"],
     },
-    addProductPlaceholder: "Добавить продукт...",
+    addProductPlaceholder: "Введите продукт…", addProductChip: "Добавить",
     btn: "Что приготовить?",
     loading: "Придумываю рецепты",
     loadingMore: "Придумываю",
@@ -227,7 +227,7 @@ const DATA = {
       drinks:   ["Молоко","Кефір","Апельсиновий сік","Кокосове молоко","Зелений чай","Кава","Імбир","М’ята"],
       other:    ["Оливкова олія","Соєвий соус","Томатна паста","Гриби","Квасоля","Мед","Гірчиця","Оцет","Сіль","Чорний перець"],
     },
-    addProductPlaceholder: "Додати продукт...",
+    addProductPlaceholder: "Введіть продукт…", addProductChip: "Додати",
     btn: "Що приготувати?",
     loading: "Придумую рецепти",
     loadingMore: "Вигадую",
@@ -325,7 +325,7 @@ const DATA = {
       drinks:   ["Milk","Kefir","Orange juice","Coconut milk","Green tea","Coffee","Ginger","Mint"],
       other:    ["Olive oil","Soy sauce","Tomato paste","Mushrooms","Beans","Honey","Mustard","Vinegar","Salt","Black pepper"],
     },
-    addProductPlaceholder: "Add ingredient...",
+    addProductPlaceholder: "Type ingredient…", addProductChip: "Add",
     btn: "What can I cook?",
     loading: "Finding recipes",
     loadingMore: "Thinking",
@@ -844,6 +844,7 @@ export default function App() {
   const [selected, setSelected] = useState(new Set());
   const [productInput, setProductInput] = useState("");
   const [productConfirmed, setProductConfirmed] = useState(false);
+  const [addingProduct, setAddingProduct] = useState(false);
 
   // PATCH 10: фильтры свёрнуты по умолчанию
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -928,9 +929,9 @@ export default function App() {
 
   const confirmProduct = () => {
     const v = productInput.trim();
-    if (v) { setSelected(prev => new Set([...prev, v])); setProductInput(""); setProductConfirmed(false); }
+    if (v) { setSelected(prev => new Set([...prev, v])); setProductInput(""); setProductConfirmed(false); setAddingProduct(false); }
   };
-  const clearProduct = () => { setProductInput(""); setProductConfirmed(false); };
+  const clearProduct = () => { setProductInput(""); setProductConfirmed(false); setAddingProduct(false); };
   const handleProductChange = v => { setProductInput(v); setProductConfirmed(false); };
   const removeProduct = item => {
     setSelected(prev => { const n = new Set(prev); n.delete(item); return n; });
@@ -1103,7 +1104,7 @@ export default function App() {
 
   const sLabel = { fontSize: 12, fontWeight: 700, color: "#64748b", letterSpacing: 1, textTransform: "uppercase", display: "block", marginBottom: 8 };
   const sDiv = { height: 1, background: "rgba(255,255,255,0.07)", margin: "12px 0" };
-  const sFilterBlock = { background: CARD, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "14px 14px" };
+  const sFilterBlock = { background: CARD, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "13px 16px" };
   const sChip = active => ({
     background: active ? "rgba(234,88,12,0.15)" : CARD_HI,
     border: active ? "1px solid rgba(234,88,12,0.4)" : "1px solid rgba(255,255,255,0.08)",
@@ -1499,15 +1500,52 @@ export default function App() {
                       background: selected.has(item) ? "rgba(234,88,12,0.15)" : CARD,
                       border: selected.has(item) ? "1.5px solid rgba(234,88,12,0.5)" : "1px solid rgba(255,255,255,0.08)",
                       borderRadius: 10, color: selected.has(item) ? "#fed7aa" : "#94a3b8",
-                      fontSize: 15, padding: "8px 14px", cursor: "pointer" }}>
+                      fontSize: 14, padding: "8px 14px", cursor: "pointer" }}>
                       {selected.has(item) ? "✓ " : ""}{item}
                     </button>
                   ))}
+
+                  {/* кастомные продукты, добавленные вручную (нет в списке категории) — выбранные чипсы */}
+                  {[...selected].filter(s => !t.items[activeCat].includes(s) &&
+                    !Object.values(t.items).flat().includes(s)).map(item => (
+                    <button key={item} onClick={() => toggle(item)} style={{
+                      background: "rgba(234,88,12,0.15)", border: "1.5px solid rgba(234,88,12,0.5)",
+                      borderRadius: 10, color: "#fed7aa", fontSize: 14, padding: "8px 14px", cursor: "pointer" }}>
+                      ✓ {item}
+                    </button>
+                  ))}
+
+                  {/* чипс "+ Добавить" / поле ввода (механика тегов: раскрывается на всю ширину) */}
+                  {!addingProduct ? (
+                    <button onClick={() => setAddingProduct(true)} style={{
+                      background: "rgba(234,88,12,0.12)", border: "1px solid rgba(234,88,12,0.45)",
+                      borderRadius: 10, color: "#fb923c", fontSize: 14, fontWeight: 600, padding: "8px 14px",
+                      cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      <Icon name="plus" size={14} color="#fb923c"/> {t.addProductChip}
+                    </button>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%",
+                      background: CARD, border: "1px solid rgba(234,88,12,0.5)", borderRadius: 10, padding: "5px 6px 5px 12px",
+                      boxSizing: "border-box" }}>
+                      <input autoFocus value={productInput}
+                        onChange={e => handleProductChange(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); confirmProduct(); } }}
+                        placeholder={t.addProductPlaceholder}
+                        style={{ flex: 1, background: "none", border: "none", outline: "none",
+                          color: "#f1f5f9", fontSize: 14, minWidth: 0 }}/>
+                      <button onClick={clearProduct} aria-label="Отмена"
+                        style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer",
+                          padding: "0 4px", flexShrink: 0, display: "flex", alignItems: "center" }}>
+                        <Icon name="x" size={16} color="#64748b"/>
+                      </button>
+                      <button onClick={confirmProduct} aria-label="Добавить"
+                        style={{ background: "#ea580c", border: "none", borderRadius: 7, width: 28, height: 28,
+                          flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Icon name="plus" size={15} color="#fff"/>
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <SmartField placeholder={t.addProductPlaceholder} value={productInput}
-                  onChange={handleProductChange} onConfirm={confirmProduct}
-                  confirmed={productConfirmed} onClear={clearProduct} showClearWhenTyping={false}
-                  clearLabel={clearLabelByLang}/>
               </>
             )}
 
@@ -1524,7 +1562,9 @@ export default function App() {
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <PremiumBadge label={t.premiumBadge}/>
-                  <Icon name="chevron-down" size={14} color="#64748b"/>
+                  <span style={{ display: "flex", alignItems: "center", transition: "transform 0.2s", transform: "rotate(0deg)" }}>
+                    <Icon name="chevron-down" size={14} color="#64748b"/>
+                  </span>
                 </span>
               </button>
             )}
@@ -1539,7 +1579,9 @@ export default function App() {
                   </span>
                   <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <PremiumBadge label={t.premiumBadge}/>
-                    <Icon name="chevron-up" size={14} color="#fb923c"/>
+                    <span style={{ display: "flex", alignItems: "center", transition: "transform 0.2s", transform: "rotate(180deg)" }}>
+                      <Icon name="chevron-down" size={14} color="#fb923c"/>
+                    </span>
                   </span>
                 </div>
 
