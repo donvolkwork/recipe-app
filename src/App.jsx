@@ -1018,6 +1018,27 @@ export default function App() {
       });
       const text = await res.text();
       const data = JSON.parse(text.replace(/```json|```/g, "").trim());
+
+      // PATCH 11: обработка не-200 ответов сервера (429 rate limit, 503 дневной
+      // лимит, 504 таймаут, 500). Раньше такие ответы падали в «Рецепт не найден»
+      // и юзер не понимал, что произошло. Серверное message показываем в warning.
+      if (!res.ok) {
+        if (data?.message) setWarning(data.message);
+        setApiError(true);
+        setLoading(false);
+        return;
+      }
+
+      // PATCH 11: конфликт фильтров (например, мясо + вегетарианское). Сервер
+      // присылает { conflict_warning, conflicts, message } — раньше фронт это
+      // игнорировал и показывал просто «не найдено». Теперь видна причина.
+      if (data.conflict_warning) {
+        setWarning([...(data.conflicts || []), data.message].filter(Boolean).join('. '));
+        setNoResults(true);
+        setLoading(false);
+        return;
+      }
+
       if (data.warning) setWarning(data.warning);
       if (!data.recipes || data.recipes.length === 0) {
         setNoResults(true);
@@ -1040,6 +1061,12 @@ export default function App() {
       });
       const text = await res.text();
       const data = JSON.parse(text.replace(/```json|```/g, "").trim());
+      // PATCH 11: не-200 (лимит/таймаут) — показываем серверное сообщение тостом
+      if (!res.ok) {
+        if (data?.message) showToast(data.message);
+        setLoadingMore(false);
+        return;
+      }
       if (data.recipes && data.recipes.length > 0) setRecipes(prev => [...(prev || []), ...data.recipes]);
     } catch { /* silent */ }
     setLoadingMore(false);
@@ -1050,11 +1077,15 @@ export default function App() {
     await shareUniversal(text, APP_LINK_SHARED, () => showToast(t.copiedShareMsg));
   };
 
-  const handleShopList = (r, idx) => {
+  // PATCH 11: clipboard обёрнут в try/catch — в некоторых webview
+  // navigator.clipboard недоступен и кидал необработанное исключение
+  const handleShopList = async (r, idx) => {
     let txt = `🛒 ${r.name}\n\n`;
     txt += `${t.ingredientsLabel}:\n${r.ingredients.join('\n')}`;
-    navigator.clipboard.writeText(txt);
-    setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
+    try {
+      await navigator.clipboard.writeText(txt);
+      setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
+    } catch { /* clipboard недоступен — молча пропускаем */ }
   };
 
   const handleRefShare = async () => {
